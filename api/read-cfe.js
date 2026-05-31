@@ -48,22 +48,34 @@ function extractOpenAIText(responseBody) {
 
 function buildUserContent(files) {
   const prompt = files.length > 1
-    ? 'Estos son dos archivos del mismo recibo CFE mexicano (frente y reverso, o dos fotos complementarias). Analízalos juntos y extrae los datos usando ambos.'
-    : 'Este es un recibo CFE mexicano. Extrae los datos.';
+      ? 'Los archivos están en este orden: primero frente, después reverso. Usa el frente para detectar el total a pagar y usa el reverso para leer la tabla de consumo histórico. Analízalos juntos para extraer los datos del mismo recibo CFE mexicano.'
+      : 'Este es un recibo CFE mexicano. Extrae los datos.';
 
-  const content = files.flatMap((file, index) => {
+  const content = [];
+
+  files.forEach((file, index) => {
+    if (files.length > 1) {
+      content.push({
+        type: 'input_text',
+        text: index === 0
+          ? 'Archivo 1: frente del recibo CFE.'
+          : 'Archivo 2: reverso del recibo CFE.',
+      });
+    }
+
     if (file.contentType === 'application/pdf') {
-      return [{
+      content.push({
         type: 'input_file',
         filename: file.filename || `recibo-cfe-${index + 1}.pdf`,
         file_data: `data:${file.contentType};base64,${file.base64}`,
-      }];
+      });
+      return;
     }
 
-    return [{
+    content.push({
       type: 'input_image',
       image_url: `data:${file.contentType};base64,${file.base64}`,
-    }];
+    });
   });
 
   content.push({ type: 'input_text', text: prompt });
@@ -158,14 +170,14 @@ Extrae exactamente estos campos:
 - tariff: tarifa CFE si aparece (ej. "1C", "DAC"), si no null
 - confidence: numero entre 0.0 y 1.0 segun tu certeza global
 - evidence: un objeto con las claves customerName, kwhBimonthly, totalPaid, billingPeriod y tariff; en cada una escribe el fragmento exacto del recibo donde viste ese dato, o null si no lo viste claramente
-- periodHistory: una lista de hasta 6 periodos del cuadro historico del recibo, ordenada de mas reciente a mas antiguo. Cada elemento debe incluir period, kwhBimonthly, totalPaid y evidence. Si no aparece una tabla historica clara, usa []
+- periodHistory: una lista con solo los ultimos 6 periodos del cuadro historico del recibo, ordenada de mas reciente a mas antiguo. Cada elemento debe incluir period, kwhBimonthly, totalPaid y evidence. Si no aparece una tabla historica clara, usa []
 
 Reglas estrictas:
 - No inventes ningun dato
 - Si no puedes leer claramente un campo, pon null
 - No calcules ahorro solar ni recomiendes paneles
 - Si el valor parece adivinado, pon null
-- Usa todas las imagenes/documentos proporcionados juntos; si hay frente y reverso, combinalos para detectar mejor los datos
+- Usa todas las imagenes/documentos proporcionados juntos; si hay frente y reverso, usa el frente para el total pagado y el reverso para el historial
 - Devuelve unicamente el objeto JSON`;
 
     const openaiResponse = await fetch(OPENAI_API_URL, {

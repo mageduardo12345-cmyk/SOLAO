@@ -582,7 +582,7 @@ footer{background:#ffffff;border-top:1px solid var(--border);padding:2.5rem 5vw}
         </div>
         <!-- Input: file tip -->
         <div class="calc-panel" id="panel-file">
-          <p class="calc-intro-text">Sube una foto clara o PDF del frente y, si hace falta, del reverso de tu recibo CFE. Detectaremos tu consumo bimestral y el total pagado para llenar la calculadora automáticamente.</p>
+          <p class="calc-intro-text">Sube primero el frente y luego, si hace falta, el reverso de tu recibo CFE. Detectaremos el total pagado desde el frente y el historial desde el reverso para llenar la calculadora automáticamente.</p>
 
           <!-- Upload zone (shown by default) -->
           <div id="upload-zone-wrap">
@@ -590,7 +590,7 @@ footer{background:#ffffff;border-top:1px solid var(--border);padding:2.5rem 5vw}
               <input type="file" id="cfe-file-input" accept="image/jpeg,image/png,application/pdf" multiple onchange="handleCfeFile(event)">
               <div class="upload-icon">📄</div>
               <div class="upload-title">Arrastra las fotos del recibo aquí o haz clic para subir</div>
-              <div class="upload-sub">Puedes subir hasta 2 archivos: frente y reverso</div>
+              <div class="upload-sub">Primero frente, después reverso. Puedes subir hasta 2 archivos.</div>
               <div class="upload-formats">
                 <span class="upload-fmt">JPG</span>
                 <span class="upload-fmt">PNG</span>
