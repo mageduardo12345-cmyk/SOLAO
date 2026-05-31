@@ -205,7 +205,7 @@
           <button class="btn primary" type="submit">Entrar</button>
         </div>
         <div class="auth-error" id="auth-error">Usuario o contraseña incorrectos.</div>
-        <div class="footer-note">Si luego quieres, este acceso lo podemos mover a un login real con servidor.</div>
+        <div class="footer-note">Los datos se guardan en internet para que aparezcan igual en celular y computadora.</div>
       </form>
     </div>
   </section>
@@ -224,7 +224,7 @@
         <button class="chip" id="export-btn">Exportar respaldo</button>
         <label class="chip" for="import-file" style="cursor:pointer">Importar respaldo</label>
         <input id="import-file" type="file" accept="application/json" hidden>
-        <a class="btn" href="/public/index.html">Volver a la web</a>
+        <a class="btn" href="/">Volver a la web</a>
         <button class="btn danger" id="reset-btn">Borrar todo</button>
         <button class="btn danger" id="logout-btn">Cerrar sesión</button>
       </div>
@@ -240,7 +240,7 @@
               <h2>Nuevo cliente</h2>
               <p>Registra prospectos, cotizaciones y reservas. El saldo se calcula automáticamente con cada pago.</p>
             </div>
-            <span class="badge">Guardado local</span>
+            <span class="badge">Guardado en internet</span>
           </div>
           <form id="client-form">
             <div class="form-grid">
@@ -385,12 +385,6 @@
   </div>
 
   <script>
-    const ADMIN_USER = 'Antonio';
-    const ADMIN_PASSWORD = 'SOLAO-2026';
-    const AUTH_KEY = 'solao-admin-auth-v1';
-    const STORAGE_KEY = 'solao-admin-v1';
-
-    const state = loadState();
     const els = {
       authScreen: document.getElementById('auth-screen'),
       authError: document.getElementById('auth-error'),
@@ -405,30 +399,23 @@
       paymentClient: document.getElementById('payment-client'),
       upcomingList: document.getElementById('upcoming-list'),
       availabilityStrip: document.getElementById('availability-strip'),
+      appShell: document.getElementById('app-shell'),
     };
 
-    let selectedClientId = state.selectedClientId || state.clients[0]?.id || null;
-    let isAuthenticated = sessionStorage.getItem(AUTH_KEY) === '1';
+    const CACHE_KEY = 'solao-admin-cache-v2';
+    const EMPTY_STATE = () => ({
+      clients: [],
+      availability: [],
+      selectedClientId: null,
+      filters: { search: '', status: 'all' },
+    });
 
-    function setAuthState(value) {
-      isAuthenticated = value;
-      document.body.classList.toggle('authenticated', value);
-      sessionStorage.setItem(AUTH_KEY, value ? '1' : '0');
-      if (els.sessionBadge) {
-        els.sessionBadge.textContent = value ? `Sesión: ${ADMIN_USER}` : 'Sesión cerrada';
-      }
-    }
-
-    function requireAuth() {
-      setAuthState(isAuthenticated);
-      if (!isAuthenticated) {
-        document.getElementById('app-shell').style.display = 'none';
-        els.authScreen.style.display = 'grid';
-      } else {
-        document.getElementById('app-shell').style.display = 'block';
-        els.authScreen.style.display = 'none';
-      }
-    }
+    let state = EMPTY_STATE();
+    let selectedClientId = null;
+    let isAuthenticated = false;
+    let currentUser = 'Antonio';
+    let saveTimer = null;
+    let cloudReady = false;
 
     function isoDate(offset = 0) {
       const d = new Date();
@@ -436,67 +423,39 @@
       return d.toISOString().slice(0, 10);
     }
 
-    function nextDate(offset) {
-      return isoDate(offset);
-    }
-
     function uid(prefix = 'id') {
       return `${prefix}-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
     }
 
-    function loadState() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        return {
-          clients: [],
-          availability: [],
-          selectedClientId: null,
-          filters: { search: '', status: 'all' }
-        };
-      }
-      try {
-        const parsed = JSON.parse(raw);
-        return {
-          clients: Array.isArray(parsed.clients) ? parsed.clients : [],
-          availability: Array.isArray(parsed.availability) ? parsed.availability : [],
-          selectedClientId: parsed.selectedClientId || null,
-          filters: parsed.filters || { search: '', status: 'all' }
-        };
-      } catch {
-        return {
-          clients: [],
-          availability: [],
-          selectedClientId: null,
-          filters: { search: '', status: 'all' }
-        };
-      }
-    }
-
-    function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        clients: state.clients,
-        availability: state.availability,
-        selectedClientId,
-        filters: state.filters
-      }));
-    }
-
     function money(value) {
-      return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(Number(value || 0));
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        maximumFractionDigits: 0,
+      }).format(Number(value || 0));
     }
 
     function shortDate(value) {
       if (!value) return 'Sin fecha';
-      return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short' }).format(new Date(value + 'T00:00:00'));
+      return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short' }).format(new Date(`${value}T00:00:00`));
     }
 
     function longDate(value) {
       if (!value) return 'Sin fecha';
-      return new Intl.DateTimeFormat('es-MX', { year: 'numeric', month: 'short', day: '2-digit' }).format(new Date(value + 'T00:00:00'));
+      return new Intl.DateTimeFormat('es-MX', { year: 'numeric', month: 'short', day: '2-digit' }).format(new Date(`${value}T00:00:00`));
     }
 
     function normalize(text) {
       return String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
     }
 
     function statusClass(status) {
@@ -506,6 +465,14 @@
       return 's-new';
     }
 
+    function calcClientTotals(client) {
+      const payments = Array.isArray(client.payments) ? client.payments : [];
+      const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const deposit = payments.filter((p) => p.kind === 'anticipo').reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const balance = Math.max(Number(client.quoteTotal || 0) - totalPaid, 0);
+      return { totalPaid, deposit, balance, isPaid: balance <= 0 };
+    }
+
     function paymentClass(client) {
       const totals = calcClientTotals(client);
       if (totals.balance <= 0) return 's-paid';
@@ -513,37 +480,131 @@
       return 's-new';
     }
 
-    function calcClientTotals(client) {
-      const totalPaid = (client.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
-      const deposit = (client.payments || []).filter((p) => p.kind === 'anticipo').reduce((sum, p) => sum + Number(p.amount || 0), 0);
-      const balance = Math.max(Number(client.quoteTotal || 0) - totalPaid, 0);
-      return { totalPaid, deposit, balance, isPaid: balance <= 0 };
+    function normalizeState(raw) {
+      const fallback = EMPTY_STATE();
+      const data = raw && typeof raw === 'object' ? raw : {};
+      return {
+        clients: Array.isArray(data.clients) ? data.clients : fallback.clients,
+        availability: Array.isArray(data.availability) ? data.availability : fallback.availability,
+        selectedClientId: typeof data.selectedClientId === 'string' ? data.selectedClientId : null,
+        filters: {
+          search: typeof data.filters?.search === 'string' ? data.filters.search : '',
+          status: typeof data.filters?.status === 'string' ? data.filters.status : 'all',
+        },
+      };
     }
 
-    function filteredClients() {
-      const search = normalize(state.filters?.search || '');
-      const status = state.filters?.status || 'all';
-      return [...state.clients]
-        .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
-        .filter((client) => {
-          const matchesSearch = !search || [
-            client.name,
-            client.phone,
-            client.city,
-            client.projectType,
-            client.notes
-          ].some((field) => normalize(field).includes(search));
-          const matchesStatus = status === 'all' || client.status === status;
-          return matchesSearch && matchesStatus;
-        });
+    function serializeState() {
+      return {
+        clients: state.clients,
+        availability: state.availability,
+        selectedClientId,
+        filters: state.filters,
+      };
+    }
+
+    function loadCache() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        return normalizeState(JSON.parse(raw));
+      } catch {
+        return null;
+      }
+    }
+
+    function saveCache() {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(serializeState()));
+      } catch {
+        // Si el navegador no deja guardar cache, seguimos solo con la nube.
+      }
+    }
+
+    function applyState(nextState) {
+      state = normalizeState(nextState);
+      selectedClientId = state.selectedClientId || state.clients[0]?.id || null;
+      state.selectedClientId = selectedClientId;
+      state.filters = state.filters || { search: '', status: 'all' };
+      saveCache();
+    }
+
+    async function fetchJson(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: 'include',
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+        },
+      });
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+
+      return { ok: response.ok, status: response.status, data };
+    }
+
+    function setAuthState(value, username = currentUser) {
+      isAuthenticated = value;
+      currentUser = username || currentUser;
+      document.body.classList.toggle('authenticated', value);
+      if (els.sessionBadge) {
+        els.sessionBadge.textContent = value ? `Sesión: ${currentUser}` : 'Sesión cerrada';
+      }
+      if (!value) {
+        els.appShell.style.display = 'none';
+        els.authScreen.style.display = 'grid';
+      } else {
+        els.appShell.style.display = 'block';
+        els.authScreen.style.display = 'none';
+      }
     }
 
     function selectedClient() {
       return state.clients.find((client) => client.id === selectedClientId) || state.clients[0] || null;
     }
 
+    function filteredClients() {
+      const search = normalize(state.filters?.search || '');
+      const status = state.filters?.status || 'all';
+      return [...state.clients]
+        .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
+        .filter((client) => {
+          const matchesSearch = !search || [
+            client.name,
+            client.phone,
+            client.city,
+            client.projectType,
+            client.notes,
+          ].some((field) => normalize(field).includes(search));
+          const matchesStatus = status === 'all' || client.status === status;
+          return matchesSearch && matchesStatus;
+        });
+    }
+
+    function daysUntil(dateString) {
+      const now = new Date();
+      const target = new Date(`${dateString}T00:00:00`);
+      const diff = target.setHours(0, 0, 0, 0) - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      return Math.round(diff / 86400000);
+    }
+
+    function metric(label, value, sub) {
+      return `
+        <article class="card metric">
+          <div class="label">${label}</div>
+          <div class="value">${value}</div>
+          <div class="sub">${sub}</div>
+        </article>
+      `;
+    }
+
     function renderMetrics() {
-      const clients = filteredClients();
       const allTotals = state.clients.map(calcClientTotals);
       const cashIn = allTotals.reduce((sum, t) => sum + t.totalPaid, 0);
       const pending = allTotals.reduce((sum, t) => sum + t.balance, 0);
@@ -560,23 +621,6 @@
         metric('Saldo pendiente', money(pending), 'Lo que falta por cobrar'),
         metric('Próximas citas', String(bookedSoon), 'Reservas dentro de 14 días'),
       ].join('');
-    }
-
-    function metric(label, value, sub) {
-      return `
-        <article class="card metric">
-          <div class="label">${label}</div>
-          <div class="value">${value}</div>
-          <div class="sub">${sub}</div>
-        </article>
-      `;
-    }
-
-    function daysUntil(dateString) {
-      const now = new Date();
-      const target = new Date(dateString + 'T00:00:00');
-      const diff = target.setHours(0,0,0,0) - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      return Math.round(diff / 86400000);
     }
 
     function renderTable() {
@@ -689,22 +733,6 @@
       `;
     }
 
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
-
-    function updateSelected(id) {
-      selectedClientId = id;
-      state.selectedClientId = id;
-      saveState();
-      render();
-    }
-
     function render() {
       if (!isAuthenticated) return;
       renderMetrics();
@@ -714,24 +742,122 @@
       renderSelectedClient();
     }
 
-    els.loginForm.addEventListener('submit', (event) => {
+    function queueSave(immediate = false) {
+      saveCache();
+      if (!cloudReady || !isAuthenticated) return;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(flushSave, immediate ? 0 : 250);
+    }
+
+    async function flushSave() {
+      if (!cloudReady || !isAuthenticated) return;
+      try {
+        const response = await fetchJson('/api/admin-state', {
+          method: 'POST',
+          body: JSON.stringify(serializeState()),
+        });
+        if (!response.ok || !response.data?.success) {
+          throw new Error(response.data?.error || 'No se pudo guardar');
+        }
+      } catch (error) {
+        console.error('No se pudo guardar en la nube:', error);
+      }
+    }
+
+    async function loadRemoteState() {
+      const response = await fetchJson('/api/admin-state', { method: 'GET' });
+      if (!response.ok || !response.data?.success) {
+        throw new Error(response.data?.error || 'No se pudo cargar la nube');
+      }
+      applyState(response.data.data);
+    }
+
+    async function bootstrap() {
+      setAuthState(false);
+      const session = await fetchJson('/api/admin-me', { method: 'GET' });
+      if (!session.ok || !session.data?.success) {
+        const cached = loadCache();
+        if (cached) applyState(cached);
+        return;
+      }
+
+      currentUser = session.data.user?.username || currentUser;
+      cloudReady = true;
+      setAuthState(true, currentUser);
+
+      const cached = loadCache();
+      if (cached) {
+        applyState(cached);
+        render();
+      }
+
+      try {
+        await loadRemoteState();
+        render();
+      } catch (error) {
+        console.error(error);
+        if (!cached) applyState(EMPTY_STATE());
+        alert('No se pudo leer la base de datos en la nube. Revisa que Supabase esté conectado en Vercel.');
+      }
+    }
+
+    async function login(username, password) {
+      const response = await fetchJson('/api/admin-login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok || !response.data?.success) {
+        throw new Error(response.data?.error || 'Usuario o contraseña incorrectos');
+      }
+
+      currentUser = response.data.user?.username || username;
+      cloudReady = true;
+      setAuthState(true, currentUser);
+      await loadRemoteState().catch(() => {
+        const cached = loadCache();
+        if (cached) {
+          applyState(cached);
+          render();
+        }
+        alert('No se pudo leer la base de datos en la nube. Revisa que Supabase esté conectado en Vercel.');
+      });
+      render();
+    }
+
+    async function logout() {
+      try {
+        await fetchJson('/api/admin-logout', { method: 'POST' });
+      } catch {
+        // No pasa nada si el cierre falla; igual ocultamos el panel.
+      }
+      setAuthState(false);
+    }
+
+    function updateSelected(id, shouldRender = true) {
+      selectedClientId = id || null;
+      state.selectedClientId = selectedClientId;
+      queueSave();
+      if (shouldRender) render();
+    }
+
+    els.loginForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const form = new FormData(event.currentTarget);
       const username = String(form.get('username') || '').trim();
       const password = String(form.get('password') || '');
-      if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
+      try {
+        await login(username, password);
         els.authError.style.display = 'none';
-        setAuthState(true);
-        requireAuth();
-        render();
-        return;
+      } catch (error) {
+        console.error(error);
+        els.authError.textContent = 'Usuario o contraseña incorrectos.';
+        els.authError.style.display = 'block';
       }
-      els.authError.style.display = 'block';
     });
 
-    els.logoutBtn.addEventListener('click', () => {
-      setAuthState(false);
-      requireAuth();
+    els.logoutBtn.addEventListener('click', async () => {
+      await logout();
     });
 
     document.getElementById('client-form').addEventListener('submit', (event) => {
@@ -740,9 +866,18 @@
       const quoteTotal = Number(form.get('quoteTotal') || 0);
       const deposit = Number(form.get('deposit') || 0);
       const payments = [];
+
       if (deposit > 0) {
-        payments.push({ id: uid('pay'), amount: deposit, kind: 'anticipo', date: form.get('appointment') || isoDate(), method: 'Sin especificar', note: 'Anticipo inicial' });
+        payments.push({
+          id: uid('pay'),
+          amount: deposit,
+          kind: 'anticipo',
+          date: form.get('appointment') || isoDate(),
+          method: 'Sin especificar',
+          note: 'Anticipo inicial',
+        });
       }
+
       const client = {
         id: uid('client'),
         name: form.get('name'),
@@ -757,11 +892,11 @@
         createdAt: isoDate(),
         updatedAt: isoDate(),
       };
+
       state.clients.unshift(client);
-      updateSelected(client.id);
+      updateSelected(client.id, false);
       event.currentTarget.reset();
-      state.filters = state.filters || { search: '', status: 'all' };
-      saveState();
+      queueSave();
       render();
     });
 
@@ -770,27 +905,31 @@
       const form = new FormData(event.currentTarget);
       const client = state.clients.find((item) => item.id === form.get('clientId'));
       if (!client) return;
+
       const amount = Number(form.get('amount') || 0);
       if (amount <= 0) return;
-      client.payments = client.payments || [];
+
+      client.payments = Array.isArray(client.payments) ? client.payments : [];
       client.payments.unshift({
         id: uid('pay'),
         amount,
         kind: form.get('kind'),
         date: form.get('date') || isoDate(),
         method: form.get('method'),
-        note: form.get('note')
+        note: form.get('note'),
       });
+
       client.updatedAt = isoDate();
-      if (form.get('kind') === 'anticipo' && !client.status.includes('Reserva')) {
+      if (form.get('kind') === 'anticipo' && !String(client.status || '').includes('Reserva')) {
         client.status = 'Reserva confirmada';
       }
       if (calcClientTotals(client).balance <= 0) {
         client.status = 'Cerrado';
       }
-      updateSelected(client.id);
+
+      updateSelected(client.id, false);
       event.currentTarget.reset();
-      saveState();
+      queueSave();
       render();
     });
 
@@ -803,7 +942,7 @@
       const payload = {
         date,
         kind: form.get('kind'),
-        label: form.get('label')
+        label: form.get('label'),
       };
       if (existing) {
         Object.assign(existing, payload);
@@ -811,21 +950,21 @@
         state.availability.unshift(payload);
       }
       event.currentTarget.reset();
-      saveState();
+      queueSave();
       render();
     });
 
     document.getElementById('search').addEventListener('input', (event) => {
       state.filters = state.filters || { search: '', status: 'all' };
       state.filters.search = event.target.value;
-      saveState();
+      queueSave();
       render();
     });
 
     document.getElementById('status-filter').addEventListener('change', (event) => {
       state.filters = state.filters || { search: '', status: 'all' };
       state.filters.status = event.target.value;
-      saveState();
+      queueSave();
       render();
     });
 
@@ -834,30 +973,32 @@
       if (!button) return;
       const client = state.clients.find((item) => item.id === button.dataset.id);
       if (!client) return;
+
       if (button.dataset.action === 'select') {
         updateSelected(client.id);
         return;
       }
+
       if (button.dataset.action === 'paid') {
-        updateSelected(client.id);
+        updateSelected(client.id, false);
         const balance = calcClientTotals(client).balance;
         if (balance > 0) {
           const amount = prompt(`Monto a registrar para ${client.name}`, String(balance));
           if (!amount) return;
           const value = Number(amount);
           if (value > 0) {
-            client.payments = client.payments || [];
+            client.payments = Array.isArray(client.payments) ? client.payments : [];
             client.payments.unshift({
               id: uid('pay'),
               amount: value,
               kind: value >= balance ? 'liquidacion' : 'abono',
               date: isoDate(),
               method: 'Sin especificar',
-              note: 'Pago rapido'
+              note: 'Pago rapido',
             });
             client.updatedAt = isoDate();
             if (calcClientTotals(client).balance <= 0) client.status = 'Cerrado';
-            saveState();
+            queueSave();
             render();
           }
         }
@@ -865,12 +1006,7 @@
     });
 
     document.getElementById('export-btn').addEventListener('click', () => {
-      const blob = new Blob([JSON.stringify({
-        clients: state.clients,
-        availability: state.availability,
-        selectedClientId,
-        filters: state.filters
-      }, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(serializeState(), null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -885,11 +1021,13 @@
       const text = await file.text();
       try {
         const parsed = JSON.parse(text);
-        state.clients = Array.isArray(parsed.clients) ? parsed.clients : state.clients;
-        state.availability = Array.isArray(parsed.availability) ? parsed.availability : state.availability;
-        selectedClientId = parsed.selectedClientId || state.clients[0]?.id || null;
-        state.filters = parsed.filters || state.filters;
-        saveState();
+        applyState({
+          clients: Array.isArray(parsed.clients) ? parsed.clients : state.clients,
+          availability: Array.isArray(parsed.availability) ? parsed.availability : state.availability,
+          selectedClientId: parsed.selectedClientId || state.clients[0]?.id || null,
+          filters: parsed.filters || state.filters,
+        });
+        queueSave(true);
         render();
       } catch {
         alert('El archivo no parece ser un respaldo valido.');
@@ -899,11 +1037,8 @@
 
     document.getElementById('reset-btn').addEventListener('click', () => {
       if (!confirm('Esto borrará todos los clientes, pagos y fechas. ¿Seguro?')) return;
-      state.clients = [];
-      state.availability = [];
-      selectedClientId = null;
-      state.filters = { search: '', status: 'all' };
-      saveState();
+      applyState(EMPTY_STATE());
+      queueSave(true);
       render();
     });
 
@@ -911,8 +1046,9 @@
       updateSelected(event.target.value);
     });
 
-    requireAuth();
-    if (isAuthenticated) render();
+    bootstrap().then(() => {
+      if (isAuthenticated) render();
+    });
   </script>
 </body>
 </html>
