@@ -149,6 +149,31 @@
     .section-title{margin:0 0 10px;font-family:'Bricolage Grotesque',sans-serif;font-size:1.05rem}
     .danger-note{color:#ffc4c4}
     .loader{display:none}
+    .auth-screen{
+      min-height:100vh;display:grid;place-items:center;padding:24px;position:relative;overflow:hidden
+    }
+    .auth-screen::before{
+      content:'';position:absolute;inset:0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(242,101,34,.18), transparent 24%),
+        radial-gradient(circle at 78% 30%, rgba(41,168,192,.15), transparent 24%);
+      pointer-events:none
+    }
+    .auth-card{
+      position:relative;z-index:1;width:min(520px,100%);padding:28px;border-radius:28px;
+      background:linear-gradient(180deg, rgba(17,44,58,.98), rgba(10,26,35,.98));
+      border:1px solid var(--line);box-shadow:var(--shadow)
+    }
+    .auth-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .auth-head h2{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:1.55rem;letter-spacing:-.03em}
+    .auth-head p{margin:.25rem 0 0;color:var(--muted);font-size:.92rem;line-height:1.5}
+    .auth-grid{display:grid;gap:12px;margin-top:16px}
+    .auth-grid .input{min-height:52px}
+    .auth-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .auth-error{display:none;margin-top:14px;padding:12px 14px;border-radius:14px;background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.25);color:#ffd7d7}
+    #app-shell{display:none}
+    body.authenticated #app-shell{display:block}
+    body.authenticated .auth-screen{display:none}
     @media (max-width: 1180px){
       .grid{grid-template-columns:1fr}
       .metrics{grid-template-columns:repeat(2,1fr)}
@@ -162,7 +187,31 @@
   </style>
 </head>
 <body>
-  <div class="shell">
+  <section class="auth-screen" id="auth-screen">
+    <div class="auth-card">
+      <div class="auth-head">
+        <div class="brand-badge">S</div>
+        <div>
+          <h2>Acceso privado SOLAO</h2>
+          <p>Entra para ver clientes, pagos, anticipos y disponibilidad.</p>
+        </div>
+      </div>
+      <form id="login-form">
+        <div class="auth-grid">
+          <input class="input" name="username" autocomplete="username" placeholder="Usuario" required>
+          <input class="input" name="password" type="password" autocomplete="current-password" placeholder="Contraseña" required>
+        </div>
+        <div class="auth-actions">
+          <button class="btn primary" type="submit">Entrar</button>
+          <button class="btn" type="button" id="fill-demo">Usar acceso demo</button>
+        </div>
+        <div class="auth-error" id="auth-error">Usuario o contraseña incorrectos.</div>
+        <div class="footer-note">Si luego quieres, este acceso lo podemos mover a un login real con servidor.</div>
+      </form>
+    </div>
+  </section>
+
+  <div class="shell" id="app-shell">
     <header class="topbar">
       <div class="brand">
         <div class="brand-badge">S</div>
@@ -172,11 +221,13 @@
         </div>
       </div>
       <div class="top-actions">
+        <span class="chip" id="session-badge">Sesión activa</span>
         <button class="chip" id="export-btn">Exportar respaldo</button>
         <label class="chip" for="import-file" style="cursor:pointer">Importar respaldo</label>
         <input id="import-file" type="file" accept="application/json" hidden>
         <a class="btn" href="/public/index.html">Volver a la web</a>
         <button class="btn danger" id="reset-btn">Limpiar demo</button>
+        <button class="btn danger" id="logout-btn">Cerrar sesión</button>
       </div>
     </header>
 
@@ -336,6 +387,9 @@
   </div>
 
   <script>
+    const ADMIN_USER = 'eduar';
+    const ADMIN_PASSWORD = 'SOLAO-2026';
+    const AUTH_KEY = 'solao-admin-auth-v1';
     const STORAGE_KEY = 'solao-admin-v1';
     const demoClients = [
       {
@@ -411,6 +465,12 @@
 
     const state = loadState();
     const els = {
+      authScreen: document.getElementById('auth-screen'),
+      authError: document.getElementById('auth-error'),
+      loginForm: document.getElementById('login-form'),
+      fillDemo: document.getElementById('fill-demo'),
+      logoutBtn: document.getElementById('logout-btn'),
+      sessionBadge: document.getElementById('session-badge'),
       metrics: document.getElementById('metrics'),
       clientsTable: document.getElementById('clients-table'),
       search: document.getElementById('search'),
@@ -422,6 +482,27 @@
     };
 
     let selectedClientId = state.selectedClientId || state.clients[0]?.id || null;
+    let isAuthenticated = sessionStorage.getItem(AUTH_KEY) === '1';
+
+    function setAuthState(value) {
+      isAuthenticated = value;
+      document.body.classList.toggle('authenticated', value);
+      sessionStorage.setItem(AUTH_KEY, value ? '1' : '0');
+      if (els.sessionBadge) {
+        els.sessionBadge.textContent = value ? `Sesión: ${ADMIN_USER}` : 'Sesión cerrada';
+      }
+    }
+
+    function requireAuth() {
+      setAuthState(isAuthenticated);
+      if (!isAuthenticated) {
+        document.getElementById('app-shell').style.display = 'none';
+        els.authScreen.style.display = 'grid';
+      } else {
+        document.getElementById('app-shell').style.display = 'block';
+        els.authScreen.style.display = 'none';
+      }
+    }
 
     function isoDate(offset = 0) {
       const d = new Date();
@@ -696,12 +777,42 @@
     }
 
     function render() {
+      if (!isAuthenticated) return;
       renderMetrics();
       renderTable();
       renderUpcoming();
       renderAvailability();
       renderSelectedClient();
     }
+
+    els.loginForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const username = String(form.get('username') || '').trim();
+      const password = String(form.get('password') || '');
+      if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
+        els.authError.style.display = 'none';
+        setAuthState(true);
+        requireAuth();
+        render();
+        return;
+      }
+      els.authError.style.display = 'block';
+    });
+
+    els.fillDemo.addEventListener('click', () => {
+      els.loginForm.elements.username.value = ADMIN_USER;
+      els.loginForm.elements.password.value = ADMIN_PASSWORD;
+      els.authError.style.display = 'none';
+      setAuthState(true);
+      requireAuth();
+      render();
+    });
+
+    els.logoutBtn.addEventListener('click', () => {
+      setAuthState(false);
+      requireAuth();
+    });
 
     document.getElementById('client-form').addEventListener('submit', (event) => {
       event.preventDefault();
@@ -900,7 +1011,8 @@
       updateSelected(event.target.value);
     });
 
-    render();
+    requireAuth();
+    if (isAuthenticated) render();
   </script>
 </body>
 </html>
