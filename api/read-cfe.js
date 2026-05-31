@@ -4,7 +4,9 @@
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: {
+      sizeLimit: '15mb',
+    },
   },
 };
 
@@ -12,45 +14,19 @@ const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
 const OPENAI_MODEL = 'gpt-4o-mini';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-async function parseMultipart(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    req.on('data', (chunk) => chunks.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
-}
+function parseDataUrl(dataUrl) {
+  const match = typeof dataUrl === 'string'
+    ? dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+    : null;
 
-function extractFile(body, boundary) {
-  const boundaryBuffer = Buffer.from('--' + boundary);
-  const parts = [];
-  let start = 0;
-
-  while (true) {
-    const idx = body.indexOf(boundaryBuffer, start);
-    if (idx === -1) break;
-    const end = body.indexOf(boundaryBuffer, idx + boundaryBuffer.length);
-    if (end === -1) break;
-    const part = body.slice(idx + boundaryBuffer.length + 2, end - 2);
-    parts.push(part);
-    start = end;
+  if (!match) {
+    return null;
   }
 
-  for (const part of parts) {
-    const headerEnd = part.indexOf('\r\n\r\n');
-    if (headerEnd === -1) continue;
-
-    const headerStr = part.slice(0, headerEnd).toString();
-    if (!headerStr.includes('filename=')) continue;
-
-    const contentTypeMatch = headerStr.match(/Content-Type:\s*([^\r\n]+)/i);
-    const contentType = contentTypeMatch ? contentTypeMatch[1].trim() : 'image/jpeg';
-    const fileData = part.slice(headerEnd + 4);
-
-    return { data: fileData, contentType };
-  }
-
-  return null;
+  return {
+    contentType: match[1],
+    base64: match[2],
+  };
 }
 
 function extractOpenAIText(responseBody) {
@@ -110,40 +86,37 @@ export default async function handler(req, res) {
   }
 
   try {
-    const rawBody = await parseMultipart(req);
-    const contentType = req.headers['content-type'] || '';
-    const boundaryMatch = contentType.match(/boundary=([^;]+)/);
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const parsedFile = parseDataUrl(body?.fileData);
 
-    if (!boundaryMatch) {
-      return res.status(400).json({ success: false, error: 'Request invalido: falta boundary' });
-    }
-
-    const boundary = boundaryMatch[1].trim();
-    const file = extractFile(rawBody, boundary);
-
-    if (!file) {
-      return res.status(400).json({ success: false, error: 'No se recibio ningun archivo' });
+    if (!parsedFile) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se recibio ningun archivo valido',
+      });
     }
 
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(file.contentType)) {
+    if (!allowedTypes.includes(parsedFile.contentType)) {
       return res.status(400).json({
         success: false,
         error: 'Formato no valido. Sube JPG, PNG o PDF.',
       });
     }
 
-    if (file.data.length > MAX_FILE_SIZE) {
+    const fileBuffer = Buffer.from(parsedFile.base64, 'base64');
+
+    if (fileBuffer.length > MAX_FILE_SIZE) {
       return res.status(400).json({
         success: false,
         error: 'El archivo es demasiado pesado. Maximo 5MB.',
       });
     }
 
-    const base64 = file.data.toString('base64');
-    const isPdf = file.contentType === 'application/pdf';
+    const base64 = fileBuffer.toString('base64');
+    const isPdf = parsedFile.contentType === 'application/pdf';
 
-    const systemPrompt = `Eres un extractor de datos de recibos CFE de Mexico.
+    const instructions = `Eres un extractor de datos de recibos CFE de Mexico.
 Analiza el recibo y devuelve unicamente JSON valido, sin texto extra, sin backticks y sin explicaciones.
 
 Extrae exactamente estos campos:
@@ -168,15 +141,12 @@ Reglas estrictas:
       },
       body: JSON.stringify({
         model: OPENAI_MODEL,
+        instructions,
         max_output_tokens: 500,
         input: [
           {
-            role: 'system',
-            content: [{ type: 'input_text', text: systemPrompt }],
-          },
-          {
             role: 'user',
-            content: buildUserContent(file, base64, isPdf),
+            content: buildUserContent({ contentType: parsedFile.contentType }, base64, isPdf),
           },
         ],
       }),
