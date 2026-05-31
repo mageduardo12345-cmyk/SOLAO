@@ -71,6 +71,31 @@ function buildUserContent(file, base64, isPdf) {
   ];
 }
 
+function normalizePeriodHistory(rawHistory) {
+  if (!Array.isArray(rawHistory)) {
+    return [];
+  }
+
+  return rawHistory
+    .map((item) => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+
+      const kwh = Number(item.kwhBimonthly);
+      const totalPaid = Number(item.totalPaid);
+
+      return {
+        period: typeof item.period === 'string' && item.period.trim() ? item.period.trim() : null,
+        kwhBimonthly: Number.isFinite(kwh) && kwh > 0 ? Math.round(kwh) : null,
+        totalPaid: Number.isFinite(totalPaid) && totalPaid > 0 ? Math.round(totalPaid) : null,
+        evidence: typeof item.evidence === 'string' && item.evidence.trim() ? item.evidence.trim() : null,
+      };
+    })
+    .filter((item) => item && (item.period || item.kwhBimonthly || item.totalPaid || item.evidence))
+    .slice(0, 6);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Metodo no permitido' });
@@ -127,6 +152,7 @@ Extrae exactamente estos campos:
 - tariff: tarifa CFE si aparece (ej. "1C", "DAC"), si no null
 - confidence: numero entre 0.0 y 1.0 segun tu certeza global
 - evidence: un objeto con las claves customerName, kwhBimonthly, totalPaid, billingPeriod y tariff; en cada una escribe el fragmento exacto del recibo donde viste ese dato, o null si no lo viste claramente
+- periodHistory: una lista de hasta 6 periodos del cuadro historico del recibo, ordenada de mas reciente a mas antiguo. Cada elemento debe incluir period, kwhBimonthly, totalPaid y evidence. Si no aparece una tabla historica clara, usa []
 
 Reglas estrictas:
 - No inventes ningun dato
@@ -181,6 +207,7 @@ Reglas estrictas:
     const hasKwh = parsed.kwhBimonthly && Number(parsed.kwhBimonthly) > 0;
     const hasPaid = parsed.totalPaid && Number(parsed.totalPaid) > 0;
     const confidence = typeof parsed.confidence === 'number' ? parsed.confidence : null;
+    const periodHistory = normalizePeriodHistory(parsed.periodHistory);
 
     const normalizedData = {
       customerName: parsed.customerName || null,
@@ -190,6 +217,7 @@ Reglas estrictas:
       tariff: parsed.tariff || null,
       confidence,
       evidence: parsed.evidence && typeof parsed.evidence === 'object' ? parsed.evidence : null,
+      periodHistory,
     };
 
     if (!hasKwh && !hasPaid) {
@@ -214,6 +242,7 @@ Reglas estrictas:
         !hasKwh ? 'No se detecto el consumo en kWh' : null,
         !hasPaid ? 'No se detecto el total pagado' : null,
         confidence !== null && confidence < 0.8 ? 'La lectura pudo ser parcial' : null,
+        periodHistory.length < 2 ? 'No se detectaron suficientes periodos historicos' : null,
       ].filter(Boolean),
     });
   } catch (err) {
