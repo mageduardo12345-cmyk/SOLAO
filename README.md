@@ -1,125 +1,105 @@
-# SOLAO Web — Guía de despliegue en Vercel
+# SOLAO Web - Guia de despliegue en Vercel
 
 ## Estructura del proyecto
 
-```
+```text
 solao-web/
-├── public/
-│   └── index.html        ← La página web completa
-├── api/
-│   └── read-cfe.js       ← Función serverless (lee recibos CFE)
-├── vercel.json           ← Configuración de Vercel
-└── README.md             ← Esta guía
+|-- public/
+|   `-- index.html        <- La pagina web completa
+|-- api/
+|   `-- read-cfe.js       <- Funcion serverless (lee recibos CFE)
+|-- vercel.json           <- Configuracion de Vercel
+`-- README.md             <- Esta guia
 ```
 
 ---
 
-## PASO 1 — Obtener el API Key de Anthropic
+## PASO 1 - Obtener el API Key de OpenAI
 
-1. Entra a https://console.anthropic.com
-2. Crea una cuenta con tu correo
-3. Ve a **Billing** → agrega tarjeta de crédito
-4. Ve a **API Keys** → clic en **Create Key**
-5. Ponle nombre: `solao-web`
-6. Copia la clave — empieza con `sk-ant-...`
-7. Guárdala, solo se muestra una vez
+1. Entra a [platform.openai.com](https://platform.openai.com/)
+2. Inicia sesion o crea tu cuenta
+3. Ve a **Settings** > **Billing** y agrega saldo o metodo de pago
+4. Ve a **API keys**
+5. Da clic en **Create new secret key**
+6. Ponle un nombre como `solao-web`
+7. Copia la clave y guardala en un lugar seguro
+
+La API key de OpenAI normalmente empieza con `sk-...` y solo se muestra completa una vez.
 
 ---
 
-## PASO 2 — Crear cuenta en Vercel
+## PASO 2 - Crear cuenta en Vercel
 
-1. Entra a https://vercel.com
+1. Entra a [vercel.com](https://vercel.com/)
 2. Clic en **Sign Up**
-3. Elige **Continue with GitHub** (necesitas cuenta de GitHub)
-   - Si no tienes GitHub: https://github.com → Sign Up (es gratis)
+3. Elige **Continue with GitHub**
 4. Autoriza a Vercel
 
 ---
 
-## PASO 3 — Subir el proyecto a GitHub
+## PASO 3 - Subir el proyecto a GitHub
 
-1. Entra a https://github.com
-2. Clic en el **+** arriba a la derecha → **New repository**
-3. Nombre: `solao-web`
-4. Selecciona **Private** (para que nadie vea tu código)
-5. Clic en **Create repository**
-6. En la siguiente pantalla, elige **uploading an existing file**
-7. Arrastra TODOS los archivos de la carpeta `solao-web/`:
+Si ya estas usando GitHub Desktop y tu repo `SOLAO`, puedes saltarte este paso.
+
+Si lo haces manualmente:
+
+1. Entra a [github.com](https://github.com/)
+2. Crea un repositorio
+3. Sube el contenido de `solao-web/`
+4. Verifica que existan:
    - `public/index.html`
    - `api/read-cfe.js`
    - `vercel.json`
-8. Clic en **Commit changes**
 
 ---
 
-## PASO 4 — Desplegar en Vercel
+## PASO 4 - Desplegar en Vercel
 
-1. Entra a https://vercel.com/dashboard
+1. Entra a [vercel.com/dashboard](https://vercel.com/dashboard)
 2. Clic en **Add New Project**
-3. Elige tu repositorio `solao-web`
+3. Elige tu repositorio
 4. Clic en **Import**
-5. En la pantalla de configuración:
-   - Framework Preset: **Other**
-   - Root Directory: dejar en blanco (/)
-6. **ANTES de dar Deploy** → ve al siguiente paso
+5. En configuracion:
+   - **Framework Preset**: `Other`
+   - **Root Directory**: dejar en blanco (`./`)
+
+Antes de dar **Deploy**, ve al siguiente paso.
 
 ---
 
-## PASO 5 — Agregar el API Key como variable de entorno ⚠️
+## PASO 5 - Agregar el API Key como variable de entorno
 
-Este es el paso más importante. El API key NUNCA debe ir en el código.
+Este es el paso mas importante. La clave nunca debe ir en el codigo.
 
-En la pantalla de Deploy de Vercel, busca la sección:
-**Environment Variables**
-
-Agrega esta variable:
+En Vercel, dentro del proyecto, agrega esta variable:
 
 | Name | Value |
 |------|-------|
-| `ANTHROPIC_API_KEY` | `sk-ant-api03-TUCLAVEAQUI...` |
+| `OPENAI_API_KEY` | `sk-...tu-clave...` |
 
-Después de agregarla:
+Despues:
+
 1. Clic en **Deploy**
 2. Espera 1-2 minutos
-3. Vercel te da una URL como: `solao-web.vercel.app`
+3. Vercel te dara una URL publica
 
 ---
 
-## PASO 6 — Configurar dominio propio (opcional)
-
-Si quieres usar `solaosoluciones.com` en lugar de `solao-web.vercel.app`:
-
-1. En Vercel → tu proyecto → **Settings** → **Domains**
-2. Escribe tu dominio y sigue las instrucciones
-3. Vercel te da los DNS que debes configurar en donde compraste el dominio
-
----
-
-## Si necesitas actualizar la página después
+## PASO 6 - Si necesitas actualizar la pagina despues
 
 1. Edita los archivos localmente
-2. Ve a GitHub → tu repositorio → el archivo que cambió
-3. Clic en el ícono de lápiz (editar)
-4. Pega el nuevo contenido
-5. Clic en **Commit changes**
-6. Vercel detecta el cambio y redespliega automáticamente en ~1 minuto
+2. Haz commit y push a GitHub
+3. Vercel detecta el cambio y redespliega automaticamente
 
 ---
 
 ## Preguntas frecuentes
 
-**¿Cuánto cuesta Vercel?**
-El plan gratis (Hobby) es suficiente para SOLAO. Incluye:
-- Despliegues ilimitados
-- 100GB de ancho de banda al mes
-- Funciones serverless incluidas
+**El API key esta seguro?**  
+Si. Como variable de entorno en Vercel, no aparece en el navegador de tus visitantes.
 
-**¿El API key está seguro?**
-Sí. Como variable de entorno en Vercel, nunca aparece en el código
-que ven los visitantes del sitio. Solo el servidor puede acceder a él.
+**Que modelo usa la lectura de recibos?**  
+Actualmente la funcion usa `gpt-4o-mini` para mantener bajo el costo.
 
-**¿Qué pasa si alguien intenta hackear el endpoint?**
-La función solo acepta imágenes/PDF, valida el tipo y tamaño,
-y no devuelve nada sensible. Lo peor que puede pasar es que
-alguien use créditos de la API — puedes poner límite de gasto
-en la consola de Anthropic.
+**Que pasa si alguien intenta abusar del endpoint?**  
+La funcion solo acepta JPG, PNG o PDF y limita el tamano del archivo a 5MB. Aun asi, conviene poner limite de gasto en OpenAI.

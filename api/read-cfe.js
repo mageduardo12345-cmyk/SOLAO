@@ -1,14 +1,17 @@
 // api/read-cfe.js
-// Función serverless de Vercel — lee recibos CFE con Claude Haiku
-// El API key de Anthropic NUNCA se expone al navegador
+// Funcion serverless de Vercel: lee recibos CFE con OpenAI
+// El API key de OpenAI nunca se expone al navegador
 
 export const config = {
   api: {
-    bodyParser: false, // necesario para recibir archivos (multipart)
+    bodyParser: false,
   },
 };
 
-// Lee el body multipart manualmente (sin dependencias externas)
+const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
+const OPENAI_MODEL = 'gpt-4o-mini';
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
 async function parseMultipart(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -18,7 +21,6 @@ async function parseMultipart(req) {
   });
 }
 
-// Extrae el archivo del body multipart/form-data
 function extractFile(body, boundary) {
   const boundaryBuffer = Buffer.from('--' + boundary);
   const parts = [];
@@ -37,6 +39,7 @@ function extractFile(body, boundary) {
   for (const part of parts) {
     const headerEnd = part.indexOf('\r\n\r\n');
     if (headerEnd === -1) continue;
+
     const headerStr = part.slice(0, headerEnd).toString();
     if (!headerStr.includes('filename=')) continue;
 
@@ -50,16 +53,56 @@ function extractFile(body, boundary) {
   return null;
 }
 
-export default async function handler(req, res) {
-  // Solo aceptar POST
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Método no permitido' });
+function extractOpenAIText(responseBody) {
+  if (typeof responseBody.output_text === 'string' && responseBody.output_text.trim()) {
+    return responseBody.output_text.trim();
   }
 
-  // Verificar que el API key está configurado
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!Array.isArray(responseBody.output)) {
+    return '';
+  }
+
+  return responseBody.output
+    .flatMap((item) => (Array.isArray(item.content) ? item.content : []))
+    .filter((item) => item.type === 'output_text' && typeof item.text === 'string')
+    .map((item) => item.text)
+    .join('')
+    .trim();
+}
+
+function buildUserContent(file, base64, isPdf) {
+  const prompt = isPdf
+    ? 'Este es un PDF de un recibo CFE mexicano. Extrae los datos.'
+    : 'Esta es una imagen de un recibo CFE mexicano. Extrae los datos.';
+
+  if (isPdf) {
+    return [
+      {
+        type: 'input_file',
+        filename: 'recibo-cfe.pdf',
+        file_data: `data:${file.contentType};base64,${base64}`,
+      },
+      { type: 'input_text', text: prompt },
+    ];
+  }
+
+  return [
+    {
+      type: 'input_image',
+      image_url: `data:${file.contentType};base64,${base64}`,
+    },
+    { type: 'input_text', text: prompt },
+  ];
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, error: 'Metodo no permitido' });
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.error('ANTHROPIC_API_KEY no configurado en variables de entorno');
+    console.error('OPENAI_API_KEY no configurado en variables de entorno');
     return res.status(500).json({
       success: false,
       error: 'Servicio no configurado. Contacta al administrador.',
@@ -67,136 +110,112 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Leer el archivo del request
     const rawBody = await parseMultipart(req);
     const contentType = req.headers['content-type'] || '';
     const boundaryMatch = contentType.match(/boundary=([^;]+)/);
 
     if (!boundaryMatch) {
-      return res.status(400).json({ success: false, error: 'Request inválido: falta boundary' });
+      return res.status(400).json({ success: false, error: 'Request invalido: falta boundary' });
     }
 
     const boundary = boundaryMatch[1].trim();
     const file = extractFile(rawBody, boundary);
 
     if (!file) {
-      return res.status(400).json({ success: false, error: 'No se recibió ningún archivo' });
+      return res.status(400).json({ success: false, error: 'No se recibio ningun archivo' });
     }
 
-    // Validar tipo de archivo
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
     if (!allowedTypes.includes(file.contentType)) {
       return res.status(400).json({
         success: false,
-        error: 'Formato no válido. Sube JPG, PNG o PDF.',
+        error: 'Formato no valido. Sube JPG, PNG o PDF.',
       });
     }
 
-    // Validar tamaño (5MB máx)
-    if (file.data.length > 5 * 1024 * 1024) {
+    if (file.data.length > MAX_FILE_SIZE) {
       return res.status(400).json({
         success: false,
-        error: 'El archivo es demasiado pesado. Máximo 5MB.',
+        error: 'El archivo es demasiado pesado. Maximo 5MB.',
       });
     }
 
-    // Convertir a base64
     const base64 = file.data.toString('base64');
     const isPdf = file.contentType === 'application/pdf';
 
-    // Prompt del sistema — solo extrae datos, no calcula nada
-    const systemPrompt = `Eres un extractor de datos de recibos CFE de México.
-Analiza la imagen del recibo y devuelve ÚNICAMENTE JSON válido, sin texto extra, sin backticks, sin explicaciones.
+    const systemPrompt = `Eres un extractor de datos de recibos CFE de Mexico.
+Analiza el recibo y devuelve unicamente JSON valido, sin texto extra, sin backticks y sin explicaciones.
 
 Extrae exactamente estos campos:
 - customerName: nombre del titular si aparece, si no null
-- kwhBimonthly: consumo total del periodo en kWh como número entero, si no null
-- totalPaid: total a pagar en pesos mexicanos como número sin signo $, si no null
+- kwhBimonthly: consumo total del periodo en kWh como numero entero, si no null
+- totalPaid: total a pagar en pesos mexicanos como numero sin signo $, si no null
 - billingPeriod: periodo facturado (ej. "MAR-ABR 2026"), si no null
 - tariff: tarifa CFE si aparece (ej. "1C", "DAC"), si no null
-- confidence: número entre 0.0 y 1.0 según tu certeza de la lectura
+- confidence: numero entre 0.0 y 1.0 segun tu certeza de la lectura
 
 Reglas estrictas:
-- NO inventes ningún dato
+- No inventes ningun dato
 - Si no puedes leer claramente un campo, pon null
-- NO calcules ahorro solar ni recomiendes paneles
-- Devuelve ÚNICAMENTE el objeto JSON, nada más`;
+- No calcules ahorro solar ni recomiendes paneles
+- Devuelve unicamente el objeto JSON`;
 
-    const userMessage = isPdf
-      ? 'Este es un PDF de un recibo CFE mexicano. Extrae los datos.'
-      : 'Esta es una imagen de un recibo CFE mexicano. Extrae los datos.';
-
-    // Llamar a Claude Haiku
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const openaiResponse = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
-        system: systemPrompt,
-        messages: [
+        model: OPENAI_MODEL,
+        max_output_tokens: 500,
+        input: [
+          {
+            role: 'system',
+            content: [{ type: 'input_text', text: systemPrompt }],
+          },
           {
             role: 'user',
-            content: [
-              {
-                type: isPdf ? 'document' : 'image',
-                source: {
-                  type: 'base64',
-                  media_type: file.contentType,
-                  data: base64,
-                },
-              },
-              { type: 'text', text: userMessage },
-            ],
+            content: buildUserContent(file, base64, isPdf),
           },
         ],
       }),
     });
 
-    if (!anthropicResponse.ok) {
-      const errBody = await anthropicResponse.text();
-      console.error('Anthropic API error:', anthropicResponse.status, errBody);
+    if (!openaiResponse.ok) {
+      const errBody = await openaiResponse.text();
+      console.error('OpenAI API error:', openaiResponse.status, errBody);
       return res.status(502).json({
         success: false,
         error: 'Error al conectar con el servicio de lectura. Intenta de nuevo.',
       });
     }
 
-    const apiData = await anthropicResponse.json();
-    const rawText = apiData.content
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
+    const apiData = await openaiResponse.json();
+    const rawText = extractOpenAIText(apiData);
 
-    // Parsear el JSON de la respuesta
     let parsed;
     try {
       const clean = rawText.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(clean);
     } catch {
-      console.error('JSON parse error. Raw response:', rawText);
+      console.error('JSON parse error. Raw response:', rawText, 'Full response:', apiData);
       return res.status(200).json({
         success: false,
-        error: 'No pudimos interpretar el recibo. Intenta con una foto más clara o ingresa los datos manualmente.',
+        error: 'No pudimos interpretar el recibo. Intenta con una foto mas clara o ingresa los datos manualmente.',
       });
     }
 
-    // Validar que tengamos al menos un dato útil
     const hasKwh = parsed.kwhBimonthly && Number(parsed.kwhBimonthly) > 0;
     const hasPaid = parsed.totalPaid && Number(parsed.totalPaid) > 0;
 
     if (!hasKwh && !hasPaid) {
       return res.status(200).json({
         success: false,
-        error: 'No pudimos detectar los datos del recibo. Intenta con una foto más clara o ingresa los datos manualmente.',
+        error: 'No pudimos detectar los datos del recibo. Intenta con una foto mas clara o ingresa los datos manualmente.',
       });
     }
 
-    // Éxito — devolver datos limpios
     return res.status(200).json({
       success: true,
       data: {
@@ -208,8 +227,8 @@ Reglas estrictas:
         confidence: parsed.confidence || null,
       },
       warnings: [
-        !hasKwh ? 'No se detectó el consumo en kWh' : null,
-        !hasPaid ? 'No se detectó el total pagado' : null,
+        !hasKwh ? 'No se detecto el consumo en kWh' : null,
+        !hasPaid ? 'No se detecto el total pagado' : null,
       ].filter(Boolean),
     });
   } catch (err) {
