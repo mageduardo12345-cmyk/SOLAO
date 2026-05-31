@@ -113,26 +113,13 @@ h2 strong{color:var(--orange)}
   user-select:none;
 }
 .srv-summary::-webkit-details-marker{display:none}
-.srv-summary::after{
-  content:'Ver';
-  margin-left:auto;
-  font-size:.68rem;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  color:var(--orange);
-  border:1px solid rgba(242,101,34,.24);
-  background:rgba(242,101,34,.08);
-  padding:.28rem .55rem;
-  border-radius:999px;
-}
-.srv[open] .srv-summary::after{content:'Cerrar'}
 .srv-icon{
   width:42px;height:42px;flex:0 0 auto;
   background:rgba(242,101,34,.1);border-radius:.75rem;display:grid;place-items:center;font-size:1.15rem;transition:background .3s
 }
 .srv:hover .srv-icon,.srv[open] .srv-icon{background:rgba(242,101,34,.2)}
-.srv-name{font-family:'Bricolage Grotesque',sans-serif;font-size:.98rem;font-weight:700;line-height:1.2}
-.srv-body{padding:0 1.2rem 1.2rem 4.4rem}
+.srv-name{font-family:'Bricolage Grotesque',sans-serif;font-size:.98rem;font-weight:700;line-height:1.2;max-width:calc(100% - 56px)}
+.srv-body{padding:0 1.2rem 1.2rem 4.2rem}
 .srv-desc{color:var(--muted);font-size:.86rem;line-height:1.65}
 .srv-price{margin-top:.8rem;color:var(--orange);font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:.92rem}
 
@@ -337,11 +324,14 @@ footer{background:#030E17;border-top:1px solid var(--border);padding:2.5rem 5vw}
   .stat-label{font-size:.74rem}
   .section{padding:4rem 1rem}
   h2{margin-bottom:2rem}
-  .srv{padding:1.2rem 1rem}
+  .services-grid{grid-template-columns:1fr}
+  .srv{padding:0}
+  .srv-summary{padding:.95rem 1rem}
   .srv-icon{width:42px;height:42px;margin-bottom:1rem;font-size:1.15rem}
-  .srv-name{font-size:.95rem}
-  .srv-desc{font-size:.82rem;line-height:1.55}
-  .srv-price{font-size:.88rem}
+  .srv-name{font-size:.92rem;max-width:none}
+  .srv-body{padding:0 1rem 1rem 4rem}
+  .srv-desc{font-size:.81rem;line-height:1.5}
+  .srv-price{font-size:.86rem}
   .calc-tabs{grid-template-columns:1fr}
   .calc-tab{padding:.9rem 1rem;font-size:.82rem}
   .calc-card,.agenda-form,.cta-final{border-radius:1.2rem}
@@ -379,6 +369,9 @@ footer{background:#030E17;border-top:1px solid var(--border);padding:2.5rem 5vw}
   .stats-bar::-webkit-scrollbar{display:none}
   .stat-item{min-width:140px;min-height:78px;padding:.9rem .85rem}
   .process-list,.pricing-grid,.testi-grid{grid-template-columns:1fr}
+  .services-grid{grid-template-columns:1fr}
+  .srv-summary{padding:.9rem .95rem}
+  .srv-body{padding:0 .95rem .95rem 3.85rem}
   .fields-row,.form-row{grid-template-columns:1fr}
   .calc-body{padding:1.2rem}
   .calc-results{padding:0 1.2rem 1.5rem}
@@ -398,9 +391,6 @@ footer{background:#030E17;border-top:1px solid var(--border);padding:2.5rem 5vw}
   .cta-final{margin:0 .85rem 3.3rem;padding:1.2rem}
   .cta-final h2{font-size:1.35rem}
   .footer-meta{font-size:.72rem}
-  .services-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .srv-summary{padding:1rem}
-  .srv-body{padding:0 1rem 1rem 3.8rem}
 }
 
 /* ── CFE Receipt Upload ── */
