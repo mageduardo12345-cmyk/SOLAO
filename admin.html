@@ -216,7 +216,7 @@
         <div class="brand-badge">S</div>
         <div>
           <h1>SOLAO Admin</h1>
-          <p>Clientes, anticipos, saldos, reservas y disponibilidad</p>
+          <p>Clientes, agenda y cobros</p>
         </div>
       </div>
       <div class="top-actions">
@@ -237,8 +237,8 @@
         <section class="card panel">
           <div class="panel-head">
             <div>
-              <h2>Nuevo cliente</h2>
-              <p>Registra prospectos, cotizaciones y reservas. El saldo se calcula automáticamente con cada pago.</p>
+              <h2>Clientes</h2>
+              <p>Alta rápida, búsqueda y ficha completa en un solo lugar.</p>
             </div>
             <span class="badge">Guardado en internet</span>
           </div>
@@ -270,12 +270,9 @@
               <button class="btn primary" type="submit">Guardar cliente</button>
             </div>
           </form>
-        </section>
-
-        <section class="card panel">
-          <div class="panel-head">
+          <div class="panel-head" style="margin-top:18px">
             <div>
-              <h2>Clientes</h2>
+              <h2>Listado</h2>
               <p>Busca, filtra y entra a cada ficha para ver pagos, historial y saldo pendiente.</p>
             </div>
             <div class="filters">
@@ -315,20 +312,11 @@
         <section class="card panel">
           <div class="panel-head">
             <div>
-              <h2>Resumen rapido</h2>
-              <p>Lo que importa hoy: dinero cobrado, pendientes, proximas visitas y agenda.</p>
+              <h2>Agenda</h2>
+              <p>Lo de hoy: dinero, visitas y fechas libres o bloqueadas.</p>
             </div>
           </div>
           <div class="list" id="upcoming-list"></div>
-        </section>
-
-        <section class="card panel">
-          <div class="panel-head">
-            <div>
-              <h2>Disponibilidad</h2>
-              <p>Bloquea o abre fechas para visitas e instalaciones.</p>
-            </div>
-          </div>
           <form id="availability-form">
             <div class="form-grid">
               <input class="input" name="date" type="date" required>
@@ -348,20 +336,11 @@
         <section class="card panel">
           <div class="panel-head">
             <div>
-              <h2>Cliente seleccionado</h2>
-              <p>Abre una ficha para registrar pagos y revisar el historial.</p>
+              <h2>Cobros</h2>
+              <p>Revisa la ficha del cliente y registra anticipos, abonos o liquidaciones.</p>
             </div>
           </div>
           <div id="selected-client"></div>
-        </section>
-
-        <section class="card panel">
-          <div class="panel-head">
-            <div>
-              <h2>Registrar pago</h2>
-              <p>Anticipo, abono o liquidacion para el cliente seleccionado.</p>
-            </div>
-          </div>
           <form id="payment-form">
             <div class="form-grid">
               <select class="select full" name="clientId" id="payment-client"></select>
