@@ -270,12 +270,68 @@ footer{background:#030E17;border-top:1px solid var(--border);padding:2.5rem 5vw}
   .cta-final{grid-template-columns:1fr}
   .nav-links{display:none}
 }
+@media(max-width:780px){
+  nav{padding:.9rem 1rem;gap:.8rem}
+  .nav-logo img{height:38px}
+  .nav-cta{padding:.58rem 1rem;font-size:.78rem}
+  .hero{min-height:auto;padding:7.5rem 1rem 3.2rem;gap:2rem}
+  .location-pill,.badge{font-size:.72rem}
+  h1{font-size:clamp(2.3rem,11vw,3.8rem);margin-bottom:1rem}
+  .hero-desc{font-size:.95rem;line-height:1.65;margin-bottom:1.4rem;max-width:none}
+  .hero-actions{flex-direction:column;align-items:stretch}
+  .hero-actions .btn-wa,.hero-actions .btn-outline{justify-content:center;width:100%}
+  .stats-bar{margin:0 1rem}
+  .stat-item{padding:1.1rem 1rem}
+  .stat-num{font-size:1.6rem}
+  .stat-label{font-size:.74rem}
+  .section{padding:4rem 1rem}
+  h2{margin-bottom:2rem}
+  .srv{padding:1.5rem 1.2rem}
+  .calc-tabs{grid-template-columns:1fr}
+  .calc-tab{padding:.9rem 1rem;font-size:.82rem}
+  .calc-card,.agenda-form,.cta-final{border-radius:1.2rem}
+  .calc-body{padding:1.25rem}
+  .calc-intro-text{padding:.85rem 1rem;font-size:.84rem}
+  .results-header{padding:1.2rem 0}
+  .results-header p{font-size:.84rem}
+  .option-card{padding:1.15rem}
+  .option-panels{font-size:1.65rem}
+  .option-row{font-size:.8rem}
+  .disclaimer{padding:.9rem 1rem;font-size:.75rem}
+  .agenda-grid{gap:1.4rem}
+  .agenda-form{padding:1.2rem}
+  .form-row{grid-template-columns:1fr}
+  .cta-final{margin:0 1rem 4rem;padding:1.5rem;gap:1.2rem}
+  .cta-final h2{font-size:1.5rem}
+  .cta-final p{font-size:.86rem}
+  .cta-btns{min-width:0}
+  .cta-btns .btn-wa,.cta-btns .btn-outline{justify-content:center;width:100%}
+  footer{padding:2rem 1rem 5rem}
+  .footer-inner{justify-content:center;text-align:center}
+  .footer-links{justify-content:center;flex-wrap:wrap}
+  .wa-float{right:1rem;bottom:1rem;width:52px;height:52px}
+  .wa-float svg{width:24px}
+}
 @media(max-width:600px){
   .stats-bar,.services-grid,.process-list,.pricing-grid,.testi-grid{grid-template-columns:1fr}
   .fields-row,.form-row{grid-template-columns:1fr}
   .calc-body{padding:1.2rem}
   .calc-results{padding:0 1.2rem 1.5rem}
   h1{font-size:2.5rem}
+}
+@media(max-width:420px){
+  nav{padding:.8rem .85rem}
+  .nav-cta{padding:.54rem .9rem;font-size:.74rem}
+  .hero{padding:7rem .85rem 2.8rem}
+  .btn-wa,.btn-outline,.btn-submit,.btn-calc{font-size:.88rem;padding:.82rem 1rem}
+  .stats-bar{margin:0 .85rem}
+  .section{padding:3.4rem .85rem}
+  .calc-body,.calc-results{padding-left:1rem;padding-right:1rem}
+  .option-price .p-val{font-size:1.25rem}
+  .agenda-form{padding:1rem}
+  .cta-final{margin:0 .85rem 3.3rem;padding:1.2rem}
+  .cta-final h2{font-size:1.35rem}
+  .footer-meta{font-size:.72rem}
 }
 
 /* ── CFE Receipt Upload ── */
