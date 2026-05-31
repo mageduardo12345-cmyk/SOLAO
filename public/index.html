@@ -783,7 +783,7 @@ function pickReceiptForMode(history, mode) {
   }
 
   if (sorted.length >= 2) {
-    return sorted[1];
+    return sorted[sorted.length - 2];
   }
 
   return sorted[0];
@@ -813,9 +813,8 @@ function calcularAhorro() {
   if (!manualKwhBimestral || manualKwhBimestral <= 0) return showError('Ingresa tu consumo bimestral en kWh.');
   if (manualTotalPagado < 70) return showError('El recibo ingresado es muy bajo para estimar ahorro solar significativo.');
 
-  const sortedHistory = hasHistory ? [...historyEntries].sort((a, b) => a.kwhBimonthly - b.kwhBimonthly) : [];
-  const recommendedReceipt = hasHistory ? (sortedHistory[1] || sortedHistory[0]) : null;
-  const maximumReceipt = hasHistory ? sortedHistory[sortedHistory.length - 1] : null;
+  const recommendedReceipt = hasHistory ? pickReceiptForMode(historyEntries, 'recommended') : null;
+  const maximumReceipt = hasHistory ? pickReceiptForMode(historyEntries, 'max') : null;
 
   function choosePackage(kwhValue, wantRecommended) {
     let chosen = PACKAGES[0];
@@ -869,7 +868,7 @@ function calcularAhorro() {
   const max = calcOption(maxPkg, maximumReceipt);
 
   document.getElementById('results-summary').innerHTML = hasHistory
-    ? `Detectamos <strong>${historyEntries.length}</strong> periodos históricos. Para <strong>Recomendado</strong> usamos el segundo consumo más bajo (<strong>${fmtKwh(rec.baseKwh)}</strong> del periodo <strong>${rec.periodLabel}</strong>) y para <strong>Máximo ahorro</strong> usamos el consumo más alto (<strong>${fmtKwh(max.baseKwh)}</strong> del periodo <strong>${max.periodLabel}</strong>).`
+    ? `Detectamos <strong>${historyEntries.length}</strong> periodos históricos. Para <strong>Recomendado</strong> usamos el segundo consumo más alto (<strong>${fmtKwh(rec.baseKwh)}</strong> del periodo <strong>${rec.periodLabel}</strong>) y para <strong>Máximo ahorro</strong> usamos el consumo más alto (<strong>${fmtKwh(max.baseKwh)}</strong> del periodo <strong>${max.periodLabel}</strong>).`
     : `Con base en tu recibo de CFE, consumes aproximadamente <strong>${fmtKwh(manualKwhBimestral)}</strong> bimestrales y pagas alrededor de <strong>${fmt(manualTotalPagado)}</strong> cada bimestre.`;
 
   function fillOption(prefix, o) {
@@ -1092,7 +1091,7 @@ function fillManualFieldsFromReceipt(data) {
         return `• ${parts.join(' · ')}`;
       })
       .join('<br>');
-    sourceBox.innerHTML += `<br><br><strong>Historial detectado:</strong><br>${historyLines}<br><br><strong>Uso automático:</strong> el consumo más alto se toma para <strong>Máximo ahorro</strong> y el segundo más bajo para <strong>Recomendado</strong>.`;
+    sourceBox.innerHTML += `<br><br><strong>Historial detectado:</strong><br>${historyLines}<br><br><strong>Uso automático:</strong> el consumo más alto se toma para <strong>Máximo ahorro</strong> y el segundo más alto para <strong>Recomendado</strong>.`;
     sourceBox.style.display = 'block';
   }
 
