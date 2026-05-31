@@ -551,6 +551,7 @@ footer{background:#ffffff;border-top:1px solid var(--border);padding:2.5rem 5vw}
           <div class="detected-banner" id="detected-banner">
             ✅ <span id="detected-msg">Datos detectados de tu recibo. Revísalos antes de calcular.</span>
           </div>
+          <div id="detected-source" style="display:none;margin-bottom:1rem;padding:.85rem 1rem;border:1px solid rgba(15,23,42,.08);border-radius:.8rem;background:rgba(15,23,42,.03);color:var(--muted);font-size:.8rem;line-height:1.55"></div>
           <p class="calc-intro-text">Ingresa los datos de tu último recibo de CFE para calcular cuánto podrías ahorrar con paneles solares. Los datos los encuentras en el recibo bimestral que te llega a casa.</p>
           <div class="fields-row">
             <div class="field-group">
@@ -981,6 +982,7 @@ function readFileAsDataUrl(file) {
 
 function fillManualFieldsFromReceipt(data) {
   let warnings = [];
+  const evidence = data && typeof data.evidence === 'object' ? data.evidence : null;
 
   if (data.totalPaid && data.totalPaid > 0) {
     document.getElementById('total-pagado').value = data.totalPaid;
@@ -1010,6 +1012,25 @@ function fillManualFieldsFromReceipt(data) {
     banner.style.background = 'rgba(245,158,11,.08)';
     banner.style.borderColor = 'rgba(245,158,11,.3)';
     banner.style.color = 'var(--orange)';
+  }
+
+  const sourceBox = document.getElementById('detected-source');
+  if (evidence) {
+    const lines = [];
+    if (evidence.totalPaid) lines.push(`<strong>Total:</strong> ${evidence.totalPaid}`);
+    if (evidence.kwhBimonthly) lines.push(`<strong>kWh:</strong> ${evidence.kwhBimonthly}`);
+    if (evidence.billingPeriod) lines.push(`<strong>Periodo:</strong> ${evidence.billingPeriod}`);
+    if (evidence.tariff) lines.push(`<strong>Tarifa:</strong> ${evidence.tariff}`);
+    if (lines.length > 0) {
+      sourceBox.innerHTML = `<strong>Leído del recibo:</strong><br>${lines.join('<br>')}`;
+      sourceBox.style.display = 'block';
+    } else {
+      sourceBox.style.display = 'none';
+      sourceBox.innerHTML = '';
+    }
+  } else {
+    sourceBox.style.display = 'none';
+    sourceBox.innerHTML = '';
   }
 
   // Switch to manual tab

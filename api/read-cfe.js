@@ -125,12 +125,14 @@ Extrae exactamente estos campos:
 - totalPaid: total a pagar en pesos mexicanos como numero sin signo $, si no null
 - billingPeriod: periodo facturado (ej. "MAR-ABR 2026"), si no null
 - tariff: tarifa CFE si aparece (ej. "1C", "DAC"), si no null
-- confidence: numero entre 0.0 y 1.0 segun tu certeza de la lectura
+- confidence: numero entre 0.0 y 1.0 segun tu certeza global
+- evidence: un objeto con las claves customerName, kwhBimonthly, totalPaid, billingPeriod y tariff; en cada una escribe el fragmento exacto del recibo donde viste ese dato, o null si no lo viste claramente
 
 Reglas estrictas:
 - No inventes ningun dato
 - Si no puedes leer claramente un campo, pon null
 - No calcules ahorro solar ni recomiendes paneles
+- Si el valor parece adivinado, pon null
 - Devuelve unicamente el objeto JSON`;
 
     const openaiResponse = await fetch(OPENAI_API_URL, {
@@ -178,6 +180,17 @@ Reglas estrictas:
 
     const hasKwh = parsed.kwhBimonthly && Number(parsed.kwhBimonthly) > 0;
     const hasPaid = parsed.totalPaid && Number(parsed.totalPaid) > 0;
+    const confidence = typeof parsed.confidence === 'number' ? parsed.confidence : null;
+
+    const normalizedData = {
+      customerName: parsed.customerName || null,
+      kwhBimonthly: hasKwh ? Number(parsed.kwhBimonthly) : null,
+      totalPaid: hasPaid ? Number(parsed.totalPaid) : null,
+      billingPeriod: parsed.billingPeriod || null,
+      tariff: parsed.tariff || null,
+      confidence,
+      evidence: parsed.evidence && typeof parsed.evidence === 'object' ? parsed.evidence : null,
+    };
 
     if (!hasKwh && !hasPaid) {
       return res.status(200).json({
@@ -186,19 +199,21 @@ Reglas estrictas:
       });
     }
 
+    if (confidence !== null && confidence < 0.65) {
+      return res.status(200).json({
+        success: false,
+        error: 'La lectura no fue suficientemente confiable. Intenta con una foto mas clara o ingresa los datos manualmente.',
+        data: normalizedData,
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      data: {
-        customerName: parsed.customerName || null,
-        kwhBimonthly: parsed.kwhBimonthly ? Number(parsed.kwhBimonthly) : null,
-        totalPaid: parsed.totalPaid ? Number(parsed.totalPaid) : null,
-        billingPeriod: parsed.billingPeriod || null,
-        tariff: parsed.tariff || null,
-        confidence: parsed.confidence || null,
-      },
+      data: normalizedData,
       warnings: [
         !hasKwh ? 'No se detecto el consumo en kWh' : null,
         !hasPaid ? 'No se detecto el total pagado' : null,
+        confidence !== null && confidence < 0.8 ? 'La lectura pudo ser parcial' : null,
       ].filter(Boolean),
     });
   } catch (err) {
