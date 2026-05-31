@@ -199,12 +199,12 @@
       <form id="login-form">
         <div class="auth-grid">
           <input class="input" name="username" autocomplete="username" placeholder="Usuario" required>
-          <input class="input" name="password" type="password" autocomplete="current-password" placeholder="ContraseÃ±a" required>
+          <input class="input" name="password" type="password" autocomplete="current-password" placeholder="Contraseña" required>
         </div>
         <div class="auth-actions">
           <button class="btn primary" type="submit">Entrar</button>
         </div>
-        <div class="auth-error" id="auth-error">Usuario o contraseÃ±a incorrectos.</div>
+        <div class="auth-error" id="auth-error">Usuario o contraseña incorrectos.</div>
         <div class="footer-note">Si luego quieres, este acceso lo podemos mover a un login real con servidor.</div>
       </form>
     </div>
@@ -220,13 +220,13 @@
         </div>
       </div>
       <div class="top-actions">
-        <span class="chip" id="session-badge">SesiÃ³n activa</span>
+        <span class="chip" id="session-badge">Sesión activa</span>
         <button class="chip" id="export-btn">Exportar respaldo</button>
         <label class="chip" for="import-file" style="cursor:pointer">Importar respaldo</label>
         <input id="import-file" type="file" accept="application/json" hidden>
         <a class="btn" href="/public/index.html">Volver a la web</a>
         <button class="btn danger" id="reset-btn">Borrar todo</button>
-        <button class="btn danger" id="logout-btn">Cerrar sesiÃ³n</button>
+        <button class="btn danger" id="logout-btn">Cerrar sesión</button>
       </div>
     </header>
 
@@ -238,7 +238,7 @@
           <div class="panel-head">
             <div>
               <h2>Nuevo cliente</h2>
-              <p>Registra prospectos, cotizaciones y reservas. El saldo se calcula automÃ¡ticamente con cada pago.</p>
+              <p>Registra prospectos, cotizaciones y reservas. El saldo se calcula automáticamente con cada pago.</p>
             </div>
             <span class="badge">Guardado local</span>
           </div>
@@ -415,7 +415,7 @@
       document.body.classList.toggle('authenticated', value);
       sessionStorage.setItem(AUTH_KEY, value ? '1' : '0');
       if (els.sessionBadge) {
-        els.sessionBadge.textContent = value ? `SesiÃ³n: ${ADMIN_USER}` : 'SesiÃ³n cerrada';
+        els.sessionBadge.textContent = value ? `Sesión: ${ADMIN_USER}` : 'Sesión cerrada';
       }
     }
 
@@ -558,7 +558,7 @@
         metric('Cobrado total', money(cashIn), 'Pagos acumulados en tu panel'),
         metric('Anticipos', money(deposits), 'Anticipo recibido de clientes'),
         metric('Saldo pendiente', money(pending), 'Lo que falta por cobrar'),
-        metric('PrÃ³ximas citas', String(bookedSoon), 'Reservas dentro de 14 dÃ­as'),
+        metric('Próximas citas', String(bookedSoon), 'Reservas dentro de 14 días'),
       ].join('');
     }
 
@@ -587,7 +587,7 @@
           <tr class="${selected}">
             <td>
               <div class="client-name">${escapeHtml(client.name)}</div>
-              <div class="muted">${escapeHtml(client.phone || 'Sin telefono')} Â· ${escapeHtml(client.city || 'Sin ciudad')}</div>
+              <div class="muted">${escapeHtml(client.phone || 'Sin telefono')} · ${escapeHtml(client.city || 'Sin ciudad')}</div>
             </td>
             <td>${escapeHtml(client.projectType || '-')}</td>
             <td>${client.appointment ? shortDate(client.appointment) : 'Pendiente'}</td>
@@ -626,7 +626,7 @@
             <div class="mini-row">
               <div>
                 <strong>${escapeHtml(client.name)}</strong>
-                <span>${escapeHtml(client.projectType || '-') } Â· ${shortDate(client.appointment)} Â· ${escapeHtml(client.city || '')}</span>
+                <span>${escapeHtml(client.projectType || '-') } · ${shortDate(client.appointment)} · ${escapeHtml(client.city || '')}</span>
               </div>
               <div style="text-align:right">
                 <span class="status ${paymentClass(client)}">${money(totals.balance)}</span>
@@ -634,7 +634,7 @@
             </div>
           `;
         });
-      els.upcomingList.innerHTML = items.join('') || `<div class="muted">AÃºn no hay citas programadas.</div>`;
+      els.upcomingList.innerHTML = items.join('') || `<div class="muted">Aún no hay citas programadas.</div>`;
     }
 
     function renderAvailability() {
@@ -642,7 +642,7 @@
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .map((item) => `
           <span class="date-pill ${item.kind === 'blocked' ? 'blocked' : 'open'}">
-            ${shortDate(item.date)} Â· ${item.kind === 'blocked' ? 'Bloqueada' : 'Disponible'}
+            ${shortDate(item.date)} · ${item.kind === 'blocked' ? 'Bloqueada' : 'Disponible'}
           </span>
         `);
       els.availabilityStrip.innerHTML = items.join('') || '<span class="muted">Sin fechas cargadas.</span>';
@@ -660,7 +660,7 @@
         <div class="detail-head">
           <div>
             <h3 class="detail-title">${escapeHtml(client.name)}</h3>
-            <div class="muted">${escapeHtml(client.projectType || '-')} Â· ${escapeHtml(client.city || '-')}</div>
+            <div class="muted">${escapeHtml(client.projectType || '-')} · ${escapeHtml(client.city || '-')}</div>
           </div>
           <span class="status ${paymentClass(client)}">${totals.balance <= 0 ? 'Pagado' : money(totals.balance) + ' pendiente'}</span>
         </div>
@@ -679,10 +679,10 @@
           ${payments.map((payment) => `
             <div class="payment-item">
               <div class="row">
-                <strong>${money(payment.amount)} Â· ${escapeHtml(payment.kind || 'pago')}</strong>
+                <strong>${money(payment.amount)} · ${escapeHtml(payment.kind || 'pago')}</strong>
                 <span class="muted">${longDate(payment.date)}</span>
               </div>
-              <div class="note">${escapeHtml(payment.method || 'Sin metodo')} Â· ${escapeHtml(payment.note || 'Sin detalle')}</div>
+              <div class="note">${escapeHtml(payment.method || 'Sin metodo')} · ${escapeHtml(payment.note || 'Sin detalle')}</div>
             </div>
           `).join('') || '<div class="muted">Todavia no hay pagos registrados.</div>'}
         </div>
@@ -916,4 +916,6 @@
   </script>
 </body>
 </html>
+
+
 
