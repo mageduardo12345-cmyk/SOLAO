@@ -410,20 +410,22 @@ footer{background:#ffffff;border-top:1px solid var(--border);padding:2.5rem 5vw}
 .receipt-guide-top{display:flex;align-items:center;justify-content:space-between;gap:.7rem;margin-bottom:.75rem}
 .receipt-guide-label{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:.9rem;color:#0F172A}
 .receipt-guide-chip{display:inline-flex;align-items:center;justify-content:center;width:1.75rem;height:1.75rem;border-radius:50%;background:rgba(242,101,34,.12);color:var(--orange);font-weight:800;font-size:.95rem;flex:0 0 auto}
-.receipt-guide-visual{position:relative;height:118px;border-radius:.9rem;background:linear-gradient(180deg, rgba(41,168,192,.08), rgba(242,101,34,.05));border:1px dashed rgba(15,23,42,.12);overflow:hidden}
-.receipt-guide-paper{position:absolute;inset:12px;border-radius:.75rem;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.08);overflow:hidden}
-.receipt-guide-paper::before{content:'';position:absolute;left:0;right:0;top:0;height:24px;background:rgba(15,23,42,.05)}
-.receipt-guide-line{position:absolute;left:14px;right:14px;height:7px;border-radius:99px;background:rgba(100,116,139,.16)}
-.receipt-guide-line.l1{top:38px;width:58%}
-.receipt-guide-line.l2{top:56px;width:72%}
-.receipt-guide-line.l3{top:74px;width:46%}
-.receipt-guide-badge{position:absolute;width:2.1rem;height:2.1rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--orange);color:#fff;font-weight:800;box-shadow:0 8px 18px rgba(242,101,34,.28);border:3px solid #fff;font-size:1rem}
-.receipt-guide-badge::after{content:'';position:absolute;inset:-7px;border-radius:50%;border:1px solid rgba(242,101,34,.18)}
+.receipt-guide-visual{position:relative;height:180px;border-radius:.9rem;background:linear-gradient(180deg, rgba(41,168,192,.08), rgba(242,101,34,.05));border:1px dashed rgba(15,23,42,.12);overflow:hidden}
+.receipt-guide-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;filter:saturate(.95) contrast(.96);opacity:.92}
+.receipt-guide-item.back .receipt-guide-photo{object-position:center top}
+.receipt-guide-overlay{position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));}
+.receipt-guide-badge{position:absolute;width:2.35rem;height:2.35rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--orange);color:#fff;font-weight:800;box-shadow:0 8px 18px rgba(242,101,34,.28);border:3px solid #fff;font-size:1.05rem;z-index:2}
+.receipt-guide-badge::after{content:'';position:absolute;inset:-8px;border-radius:50%;border:1px solid rgba(242,101,34,.20);animation:pulseRing 2.2s ease-out infinite}
+.receipt-guide-label-chip{position:absolute;z-index:2;left:14px;bottom:14px;background:rgba(15,23,42,.72);color:#fff;padding:.45rem .7rem;border-radius:999px;font-size:.72rem;font-weight:700;backdrop-filter:blur(10px)}
+.receipt-guide-scrim{position:absolute;inset:auto 0 0 0;height:44%;background:linear-gradient(180deg, rgba(15,23,42,0), rgba(15,23,42,.06));}
 .receipt-guide-caption{margin-top:.7rem;color:var(--muted);font-size:.78rem;line-height:1.45}
-.receipt-guide-item.front .receipt-guide-badge{top:28px;right:28px}
-.receipt-guide-item.back .receipt-guide-badge{top:48px;right:34px}
-.receipt-guide-item.back .receipt-guide-line.l2{width:80%}
-.receipt-guide-item.back .receipt-guide-line.l3{width:65%}
+.receipt-guide-item.front .receipt-guide-badge{top:18px;right:20px}
+.receipt-guide-item.back .receipt-guide-badge{top:22px;left:20px}
+@keyframes pulseRing{
+  0%{transform:scale(.92);opacity:.85}
+  70%{transform:scale(1.3);opacity:0}
+  100%{transform:scale(1.3);opacity:0}
+}
 .upload-state{display:none;text-align:center;padding:1.5rem 0}
 .upload-state.active{display:block}
 .spinner{width:40px;height:40px;border:3px solid rgba(242,101,34,.2);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem}
@@ -611,12 +613,11 @@ footer{background:#ffffff;border-top:1px solid var(--border);padding:2.5rem 5vw}
                 <div class="receipt-guide-chip">?</div>
               </div>
               <div class="receipt-guide-visual">
-                <div class="receipt-guide-paper">
-                  <div class="receipt-guide-badge">?</div>
-                  <div class="receipt-guide-line l1"></div>
-                  <div class="receipt-guide-line l2"></div>
-                  <div class="receipt-guide-line l3"></div>
-                </div>
+                <img class="receipt-guide-photo" src="recibo-ejemplo-frente.jpg" alt="Ejemplo de recibo CFE por el frente">
+                <div class="receipt-guide-overlay"></div>
+                <div class="receipt-guide-scrim"></div>
+                <div class="receipt-guide-label-chip">Total pagado</div>
+                <div class="receipt-guide-badge">?</div>
               </div>
               <div class="receipt-guide-caption">Aquí nos importa sobre todo <strong>cuánto pagó el cliente</strong> en ese bimestre.</div>
             </div>
@@ -626,12 +627,11 @@ footer{background:#ffffff;border-top:1px solid var(--border);padding:2.5rem 5vw}
                 <div class="receipt-guide-chip">?</div>
               </div>
               <div class="receipt-guide-visual">
-                <div class="receipt-guide-paper">
-                  <div class="receipt-guide-badge">?</div>
-                  <div class="receipt-guide-line l1"></div>
-                  <div class="receipt-guide-line l2"></div>
-                  <div class="receipt-guide-line l3"></div>
-                </div>
+                <img class="receipt-guide-photo" src="recibo-ejemplo-reverso.jpg" alt="Ejemplo de recibo CFE por el reverso">
+                <div class="receipt-guide-overlay"></div>
+                <div class="receipt-guide-scrim"></div>
+                <div class="receipt-guide-label-chip">Tabla histórica</div>
+                <div class="receipt-guide-badge">?</div>
               </div>
               <div class="receipt-guide-caption">Aquí buscamos la <strong>tabla histórica</strong> y usamos solo los <strong>últimos 6 periodos</strong>.</div>
             </div>
