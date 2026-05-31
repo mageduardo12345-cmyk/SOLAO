@@ -342,7 +342,16 @@ footer{background:#030E17;border-top:1px solid var(--border);padding:2.5rem 5vw}
   .wa-float svg{width:24px}
 }
 @media(max-width:600px){
-  .stats-bar,.process-list,.pricing-grid,.testi-grid{grid-template-columns:1fr}
+  .stats-bar{
+    grid-template-columns:repeat(4,minmax(140px,1fr));
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    gap:.6rem;
+    padding:.85rem 0;
+  }
+  .stats-bar::-webkit-scrollbar{display:none}
+  .stat-item{min-width:140px;min-height:78px;padding:.9rem .85rem}
+  .process-list,.pricing-grid,.testi-grid{grid-template-columns:1fr}
   .fields-row,.form-row{grid-template-columns:1fr}
   .calc-body{padding:1.2rem}
   .calc-results{padding:0 1.2rem 1.5rem}
