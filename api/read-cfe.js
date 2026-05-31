@@ -220,30 +220,25 @@ Reglas estrictas:
       periodHistory,
     };
 
-    if (!hasKwh && !hasPaid) {
+    const warnings = [
+      !hasKwh ? 'No se detecto el consumo en kWh' : null,
+      !hasPaid ? 'No se detecto el total pagado' : null,
+      confidence !== null && confidence < 0.8 ? 'La lectura pudo ser parcial' : null,
+      confidence !== null && confidence < 0.5 ? 'La certeza del modelo fue baja' : null,
+      periodHistory.length < 2 ? 'No se detectaron suficientes periodos historicos' : null,
+    ].filter(Boolean);
+
+    if (!hasKwh && !hasPaid && periodHistory.length === 0) {
       return res.status(200).json({
         success: false,
         error: 'No pudimos detectar los datos del recibo. Intenta con una foto mas clara o ingresa los datos manualmente.',
       });
     }
 
-    if (confidence !== null && confidence < 0.65) {
-      return res.status(200).json({
-        success: false,
-        error: 'La lectura no fue suficientemente confiable. Intenta con una foto mas clara o ingresa los datos manualmente.',
-        data: normalizedData,
-      });
-    }
-
     return res.status(200).json({
       success: true,
       data: normalizedData,
-      warnings: [
-        !hasKwh ? 'No se detecto el consumo en kWh' : null,
-        !hasPaid ? 'No se detecto el total pagado' : null,
-        confidence !== null && confidence < 0.8 ? 'La lectura pudo ser parcial' : null,
-        periodHistory.length < 2 ? 'No se detectaron suficientes periodos historicos' : null,
-      ].filter(Boolean),
+      warnings,
     });
   } catch (err) {
     console.error('Error inesperado en read-cfe:', err);
