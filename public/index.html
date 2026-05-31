@@ -582,15 +582,15 @@ footer{background:#ffffff;border-top:1px solid var(--border);padding:2.5rem 5vw}
         </div>
         <!-- Input: file tip -->
         <div class="calc-panel" id="panel-file">
-          <p class="calc-intro-text">Sube una foto clara o PDF de tu recibo CFE. Detectaremos tu consumo bimestral y el total pagado para llenar la calculadora automáticamente.</p>
+          <p class="calc-intro-text">Sube una foto clara o PDF del frente y, si hace falta, del reverso de tu recibo CFE. Detectaremos tu consumo bimestral y el total pagado para llenar la calculadora automáticamente.</p>
 
           <!-- Upload zone (shown by default) -->
           <div id="upload-zone-wrap">
             <div class="upload-zone" id="upload-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-              <input type="file" id="cfe-file-input" accept="image/jpeg,image/png,application/pdf" onchange="handleCfeFile(event)">
+              <input type="file" id="cfe-file-input" accept="image/jpeg,image/png,application/pdf" multiple onchange="handleCfeFile(event)">
               <div class="upload-icon">📄</div>
-              <div class="upload-title">Arrastra tu recibo aquí o haz clic para subir</div>
-              <div class="upload-sub">Foto clara o PDF del recibo bimestral de CFE</div>
+              <div class="upload-title">Arrastra las fotos del recibo aquí o haz clic para subir</div>
+              <div class="upload-sub">Puedes subir hasta 2 archivos: frente y reverso</div>
               <div class="upload-formats">
                 <span class="upload-fmt">JPG</span>
                 <span class="upload-fmt">PNG</span>
@@ -953,38 +953,43 @@ function onDragLeave(e) {
 function onDrop(e) {
   e.preventDefault();
   document.getElementById('upload-zone').classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) processReceiptFile(file);
+  const files = Array.from(e.dataTransfer.files || []).slice(0, 2);
+  if (files.length) processReceiptFiles(files);
 }
 function handleCfeFile(e) {
-  const file = e.target.files[0];
-  if (file) processReceiptFile(file);
+  const files = Array.from(e.target.files || []).slice(0, 2);
+  if (files.length) processReceiptFiles(files);
 }
 
-async function processReceiptFile(file) {
-  // Validate type
+async function processReceiptFiles(files) {
   const allowed = ['image/jpeg','image/png','application/pdf'];
-  if (!allowed.includes(file.type)) {
-    showUploadError('Formato no válido. Sube una imagen JPG, PNG o un PDF.');
-    return;
-  }
-  // Validate size (5MB max)
-  if (file.size > 5 * 1024 * 1024) {
-    showUploadError('El archivo es demasiado pesado. Intenta con una imagen más ligera (máx 5MB).');
+
+  if (files.length > 2) {
+    showUploadError('Por ahora solo puedes subir hasta 2 archivos: frente y reverso.');
     return;
   }
 
-  // Show loading
+  for (const file of files) {
+    if (!allowed.includes(file.type)) {
+      showUploadError('Formato no válido. Sube imágenes JPG, PNG o un PDF.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showUploadError('Uno de los archivos es demasiado pesado. Intenta con imágenes más ligeras (máx 5MB cada una).');
+      return;
+    }
+  }
+
   document.getElementById('upload-zone-wrap').style.display = 'none';
   document.getElementById('upload-error').style.display = 'none';
   document.getElementById('upload-loading').classList.add('active');
 
   try {
-    const result = await readReceiptWithClaude(file);
+    const result = await readReceiptWithClaude(files);
     document.getElementById('upload-loading').classList.remove('active');
 
     if (!result.success) {
-      showUploadError(result.error || 'No pudimos leer el recibo. Intenta con una foto más clara o ingresa los datos manualmente.');
+      showUploadError(result.error || 'No pudimos leer el recibo. Intenta con fotos más claras o ingresa los datos manualmente.');
       return;
     }
 
@@ -996,9 +1001,9 @@ async function processReceiptFile(file) {
   }
 }
 
-async function readReceiptWithClaude(file) {
+async function readReceiptWithClaude(files) {
   // Llama a nuestro endpoint seguro en Vercel — el API key nunca sale al navegador
-  const fileData = await readFileAsDataUrl(file);
+  const fileDataList = await Promise.all(files.map(readFileAsDataUrl));
 
   const response = await fetch('/api/read-cfe', {
     method: 'POST',
@@ -1006,7 +1011,7 @@ async function readReceiptWithClaude(file) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      fileData,
+      fileDataList,
     }),
   });
 

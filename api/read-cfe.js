@@ -46,29 +46,28 @@ function extractOpenAIText(responseBody) {
     .trim();
 }
 
-function buildUserContent(file, base64, isPdf) {
-  const prompt = isPdf
-    ? 'Este es un PDF de un recibo CFE mexicano. Extrae los datos.'
-    : 'Esta es una imagen de un recibo CFE mexicano. Extrae los datos.';
+function buildUserContent(files) {
+  const prompt = files.length > 1
+    ? 'Estos son dos archivos del mismo recibo CFE mexicano (frente y reverso, o dos fotos complementarias). Analízalos juntos y extrae los datos usando ambos.'
+    : 'Este es un recibo CFE mexicano. Extrae los datos.';
 
-  if (isPdf) {
-    return [
-      {
+  const content = files.flatMap((file, index) => {
+    if (file.contentType === 'application/pdf') {
+      return [{
         type: 'input_file',
-        filename: 'recibo-cfe.pdf',
-        file_data: `data:${file.contentType};base64,${base64}`,
-      },
-      { type: 'input_text', text: prompt },
-    ];
-  }
+        filename: file.filename || `recibo-cfe-${index + 1}.pdf`,
+        file_data: `data:${file.contentType};base64,${file.base64}`,
+      }];
+    }
 
-  return [
-    {
+    return [{
       type: 'input_image',
-      image_url: `data:${file.contentType};base64,${base64}`,
-    },
-    { type: 'input_text', text: prompt },
-  ];
+      image_url: `data:${file.contentType};base64,${file.base64}`,
+    }];
+  });
+
+  content.push({ type: 'input_text', text: prompt });
+  return content;
 }
 
 function normalizePeriodHistory(rawHistory) {
@@ -112,9 +111,12 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const parsedFile = parseDataUrl(body?.fileData);
+    const rawFiles = Array.isArray(body?.fileDataList)
+      ? body.fileDataList
+      : (body?.fileData ? [body.fileData] : []);
+    const parsedFiles = rawFiles.map(parseDataUrl).filter(Boolean).slice(0, 2);
 
-    if (!parsedFile) {
+    if (!parsedFiles.length) {
       return res.status(400).json({
         success: false,
         error: 'No se recibio ningun archivo valido',
@@ -122,27 +124,31 @@ export default async function handler(req, res) {
     }
 
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(parsedFile.contentType)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Formato no valido. Sube JPG, PNG o PDF.',
-      });
+    for (const parsedFile of parsedFiles) {
+      if (!allowedTypes.includes(parsedFile.contentType)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Formato no valido. Sube JPG, PNG o PDF.',
+        });
+      }
+
+      const fileBuffer = Buffer.from(parsedFile.base64, 'base64');
+      if (fileBuffer.length > MAX_FILE_SIZE) {
+        return res.status(400).json({
+          success: false,
+          error: 'Uno de los archivos es demasiado pesado. Maximo 5MB por archivo.',
+        });
+      }
     }
 
-    const fileBuffer = Buffer.from(parsedFile.base64, 'base64');
-
-    if (fileBuffer.length > MAX_FILE_SIZE) {
-      return res.status(400).json({
-        success: false,
-        error: 'El archivo es demasiado pesado. Maximo 5MB.',
-      });
-    }
-
-    const base64 = fileBuffer.toString('base64');
-    const isPdf = parsedFile.contentType === 'application/pdf';
+    const files = parsedFiles.map((parsedFile, index) => ({
+      contentType: parsedFile.contentType,
+      base64: Buffer.from(parsedFile.base64, 'base64').toString('base64'),
+      filename: parsedFile.contentType === 'application/pdf' ? `recibo-cfe-${index + 1}.pdf` : null,
+    }));
 
     const instructions = `Eres un extractor de datos de recibos CFE de Mexico.
-Analiza el recibo y devuelve unicamente JSON valido, sin texto extra, sin backticks y sin explicaciones.
+Analiza uno o dos archivos del mismo recibo CFE y devuelve unicamente JSON valido, sin texto extra, sin backticks y sin explicaciones.
 
 Extrae exactamente estos campos:
 - customerName: nombre del titular si aparece, si no null
@@ -159,6 +165,7 @@ Reglas estrictas:
 - Si no puedes leer claramente un campo, pon null
 - No calcules ahorro solar ni recomiendes paneles
 - Si el valor parece adivinado, pon null
+- Usa todas las imagenes/documentos proporcionados juntos; si hay frente y reverso, combinalos para detectar mejor los datos
 - Devuelve unicamente el objeto JSON`;
 
     const openaiResponse = await fetch(OPENAI_API_URL, {
@@ -174,7 +181,7 @@ Reglas estrictas:
         input: [
           {
             role: 'user',
-            content: buildUserContent({ contentType: parsedFile.contentType }, base64, isPdf),
+            content: buildUserContent(files),
           },
         ],
       }),
