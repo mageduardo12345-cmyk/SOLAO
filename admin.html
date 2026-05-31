@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -199,13 +199,12 @@
       <form id="login-form">
         <div class="auth-grid">
           <input class="input" name="username" autocomplete="username" placeholder="Usuario" required>
-          <input class="input" name="password" type="password" autocomplete="current-password" placeholder="Contraseña" required>
+          <input class="input" name="password" type="password" autocomplete="current-password" placeholder="ContraseÃ±a" required>
         </div>
         <div class="auth-actions">
           <button class="btn primary" type="submit">Entrar</button>
-          <button class="btn" type="button" id="fill-demo">Usar acceso demo</button>
         </div>
-        <div class="auth-error" id="auth-error">Usuario o contraseña incorrectos.</div>
+        <div class="auth-error" id="auth-error">Usuario o contraseÃ±a incorrectos.</div>
         <div class="footer-note">Si luego quieres, este acceso lo podemos mover a un login real con servidor.</div>
       </form>
     </div>
@@ -221,13 +220,13 @@
         </div>
       </div>
       <div class="top-actions">
-        <span class="chip" id="session-badge">Sesión activa</span>
+        <span class="chip" id="session-badge">SesiÃ³n activa</span>
         <button class="chip" id="export-btn">Exportar respaldo</button>
         <label class="chip" for="import-file" style="cursor:pointer">Importar respaldo</label>
         <input id="import-file" type="file" accept="application/json" hidden>
         <a class="btn" href="/public/index.html">Volver a la web</a>
-        <button class="btn danger" id="reset-btn">Limpiar demo</button>
-        <button class="btn danger" id="logout-btn">Cerrar sesión</button>
+        <button class="btn danger" id="reset-btn">Borrar todo</button>
+        <button class="btn danger" id="logout-btn">Cerrar sesiÃ³n</button>
       </div>
     </header>
 
@@ -239,7 +238,7 @@
           <div class="panel-head">
             <div>
               <h2>Nuevo cliente</h2>
-              <p>Registra prospectos, cotizaciones y reservas. El saldo se calcula automáticamente con cada pago.</p>
+              <p>Registra prospectos, cotizaciones y reservas. El saldo se calcula automÃ¡ticamente con cada pago.</p>
             </div>
             <span class="badge">Guardado local</span>
           </div>
@@ -269,7 +268,6 @@
             </div>
             <div class="form-actions">
               <button class="btn primary" type="submit">Guardar cliente</button>
-              <button class="btn" type="button" id="seed-next-btn">Cargar siguiente ejemplo</button>
             </div>
           </form>
         </section>
@@ -387,88 +385,16 @@
   </div>
 
   <script>
-    const ADMIN_USER = 'eduar';
+    const ADMIN_USER = 'Antonio';
     const ADMIN_PASSWORD = 'SOLAO-2026';
     const AUTH_KEY = 'solao-admin-auth-v1';
     const STORAGE_KEY = 'solao-admin-v1';
-    const demoClients = [
-      {
-        id: 'c1',
-        name: 'Martha Lopez',
-        phone: '312 456 7788',
-        city: 'Villa de Alvarez',
-        projectType: 'Paneles solares',
-        quoteTotal: 128000,
-        appointment: nextDate(3),
-        status: 'Reserva confirmada',
-        notes: 'Quiere reducir recibo de CFE y pide visita en la tarde.',
-        payments: [
-          { id: 'p1', amount: 20000, kind: 'anticipo', date: nextDate(-5), method: 'Transferencia', note: 'Anticipo para apartar fecha' }
-        ],
-        createdAt: isoDate(-8),
-        updatedAt: isoDate(-5)
-      },
-      {
-        id: 'c2',
-        name: 'Javier Torres',
-        phone: '312 332 1090',
-        city: 'Colima Centro',
-        projectType: 'Calentador solar',
-        quoteTotal: 14800,
-        appointment: nextDate(1),
-        status: 'Cotizado',
-        notes: 'Pidio comparativa de 10 y 12 tubos.',
-        payments: [],
-        createdAt: isoDate(-2),
-        updatedAt: isoDate(-2)
-      },
-      {
-        id: 'c3',
-        name: 'Rosa Hernandez',
-        phone: '312 901 4450',
-        city: 'Comala',
-        projectType: 'Aire acondicionado',
-        quoteTotal: 22500,
-        appointment: nextDate(8),
-        status: 'Nuevo lead',
-        notes: 'Interesada en minisplit para recamara principal.',
-        payments: [
-          { id: 'p3', amount: 5000, kind: 'anticipo', date: nextDate(-1), method: 'Efectivo', note: 'Aparto la instalacion' }
-        ],
-        createdAt: isoDate(-1),
-        updatedAt: isoDate(-1)
-      },
-      {
-        id: 'c4',
-        name: 'Carlos Mejia',
-        phone: '312 515 8022',
-        city: 'Manzanillo',
-        projectType: 'Paneles solares',
-        quoteTotal: 176000,
-        appointment: nextDate(12),
-        status: 'Instalado',
-        notes: 'Falta liquidacion final y foto de cierre.',
-        payments: [
-          { id: 'p4', amount: 30000, kind: 'anticipo', date: nextDate(-18), method: 'Transferencia', note: 'Anticipo inicial' },
-          { id: 'p5', amount: 100000, kind: 'abono', date: nextDate(-7), method: 'Transferencia', note: 'Avance de pago' }
-        ],
-        createdAt: isoDate(-20),
-        updatedAt: isoDate(-7)
-      }
-    ];
-    const demoAvailability = [
-      { date: nextDate(1), kind: 'open', label: 'Disponible para visitas' },
-      { date: nextDate(4), kind: 'blocked', label: 'Instalacion en Colima' },
-      { date: nextDate(8), kind: 'open', label: 'Espacio para cotizaciones' },
-      { date: nextDate(12), kind: 'blocked', label: 'Trabajo fuera de ciudad' }
-    ];
 
     const state = loadState();
     const els = {
       authScreen: document.getElementById('auth-screen'),
       authError: document.getElementById('auth-error'),
       loginForm: document.getElementById('login-form'),
-      fillDemo: document.getElementById('fill-demo'),
       logoutBtn: document.getElementById('logout-btn'),
       sessionBadge: document.getElementById('session-badge'),
       metrics: document.getElementById('metrics'),
@@ -489,7 +415,7 @@
       document.body.classList.toggle('authenticated', value);
       sessionStorage.setItem(AUTH_KEY, value ? '1' : '0');
       if (els.sessionBadge) {
-        els.sessionBadge.textContent = value ? `Sesión: ${ADMIN_USER}` : 'Sesión cerrada';
+        els.sessionBadge.textContent = value ? `SesiÃ³n: ${ADMIN_USER}` : 'SesiÃ³n cerrada';
       }
     }
 
@@ -522,25 +448,25 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
         return {
-          clients: demoClients,
-          availability: demoAvailability,
-          selectedClientId: demoClients[0].id,
+          clients: [],
+          availability: [],
+          selectedClientId: null,
           filters: { search: '', status: 'all' }
         };
       }
       try {
         const parsed = JSON.parse(raw);
         return {
-          clients: Array.isArray(parsed.clients) ? parsed.clients : demoClients,
-          availability: Array.isArray(parsed.availability) ? parsed.availability : demoAvailability,
-          selectedClientId: parsed.selectedClientId || demoClients[0].id,
+          clients: Array.isArray(parsed.clients) ? parsed.clients : [],
+          availability: Array.isArray(parsed.availability) ? parsed.availability : [],
+          selectedClientId: parsed.selectedClientId || null,
           filters: parsed.filters || { search: '', status: 'all' }
         };
       } catch {
         return {
-          clients: demoClients,
-          availability: demoAvailability,
-          selectedClientId: demoClients[0].id,
+          clients: [],
+          availability: [],
+          selectedClientId: null,
           filters: { search: '', status: 'all' }
         };
       }
@@ -632,7 +558,7 @@
         metric('Cobrado total', money(cashIn), 'Pagos acumulados en tu panel'),
         metric('Anticipos', money(deposits), 'Anticipo recibido de clientes'),
         metric('Saldo pendiente', money(pending), 'Lo que falta por cobrar'),
-        metric('Próximas citas', String(bookedSoon), 'Reservas dentro de 14 días'),
+        metric('PrÃ³ximas citas', String(bookedSoon), 'Reservas dentro de 14 dÃ­as'),
       ].join('');
     }
 
@@ -661,7 +587,7 @@
           <tr class="${selected}">
             <td>
               <div class="client-name">${escapeHtml(client.name)}</div>
-              <div class="muted">${escapeHtml(client.phone || 'Sin telefono')} · ${escapeHtml(client.city || 'Sin ciudad')}</div>
+              <div class="muted">${escapeHtml(client.phone || 'Sin telefono')} Â· ${escapeHtml(client.city || 'Sin ciudad')}</div>
             </td>
             <td>${escapeHtml(client.projectType || '-')}</td>
             <td>${client.appointment ? shortDate(client.appointment) : 'Pendiente'}</td>
@@ -680,7 +606,10 @@
       }).join('');
 
       els.clientsTable.innerHTML = rows || `<tr><td colspan="8" class="muted">No hay clientes con esos filtros.</td></tr>`;
-      els.paymentClient.innerHTML = state.clients.map((client) => `<option value="${client.id}" ${client.id === selectedClientId ? 'selected' : ''}>${escapeHtml(client.name)}</option>`).join('');
+      els.paymentClient.innerHTML = state.clients.length
+        ? state.clients.map((client) => `<option value="${client.id}" ${client.id === selectedClientId ? 'selected' : ''}>${escapeHtml(client.name)}</option>`).join('')
+        : '<option value="">Sin clientes</option>';
+      els.paymentClient.disabled = state.clients.length === 0;
       els.paymentClient.value = selectedClientId || '';
       els.search.value = state.filters?.search || '';
       els.statusFilter.value = state.filters?.status || 'all';
@@ -697,7 +626,7 @@
             <div class="mini-row">
               <div>
                 <strong>${escapeHtml(client.name)}</strong>
-                <span>${escapeHtml(client.projectType || '-') } · ${shortDate(client.appointment)} · ${escapeHtml(client.city || '')}</span>
+                <span>${escapeHtml(client.projectType || '-') } Â· ${shortDate(client.appointment)} Â· ${escapeHtml(client.city || '')}</span>
               </div>
               <div style="text-align:right">
                 <span class="status ${paymentClass(client)}">${money(totals.balance)}</span>
@@ -705,7 +634,7 @@
             </div>
           `;
         });
-      els.upcomingList.innerHTML = items.join('') || `<div class="muted">Aún no hay citas programadas.</div>`;
+      els.upcomingList.innerHTML = items.join('') || `<div class="muted">AÃºn no hay citas programadas.</div>`;
     }
 
     function renderAvailability() {
@@ -713,7 +642,7 @@
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .map((item) => `
           <span class="date-pill ${item.kind === 'blocked' ? 'blocked' : 'open'}">
-            ${shortDate(item.date)} · ${item.kind === 'blocked' ? 'Bloqueada' : 'Disponible'}
+            ${shortDate(item.date)} Â· ${item.kind === 'blocked' ? 'Bloqueada' : 'Disponible'}
           </span>
         `);
       els.availabilityStrip.innerHTML = items.join('') || '<span class="muted">Sin fechas cargadas.</span>';
@@ -731,7 +660,7 @@
         <div class="detail-head">
           <div>
             <h3 class="detail-title">${escapeHtml(client.name)}</h3>
-            <div class="muted">${escapeHtml(client.projectType || '-')} · ${escapeHtml(client.city || '-')}</div>
+            <div class="muted">${escapeHtml(client.projectType || '-')} Â· ${escapeHtml(client.city || '-')}</div>
           </div>
           <span class="status ${paymentClass(client)}">${totals.balance <= 0 ? 'Pagado' : money(totals.balance) + ' pendiente'}</span>
         </div>
@@ -750,10 +679,10 @@
           ${payments.map((payment) => `
             <div class="payment-item">
               <div class="row">
-                <strong>${money(payment.amount)} · ${escapeHtml(payment.kind || 'pago')}</strong>
+                <strong>${money(payment.amount)} Â· ${escapeHtml(payment.kind || 'pago')}</strong>
                 <span class="muted">${longDate(payment.date)}</span>
               </div>
-              <div class="note">${escapeHtml(payment.method || 'Sin metodo')} · ${escapeHtml(payment.note || 'Sin detalle')}</div>
+              <div class="note">${escapeHtml(payment.method || 'Sin metodo')} Â· ${escapeHtml(payment.note || 'Sin detalle')}</div>
             </div>
           `).join('') || '<div class="muted">Todavia no hay pagos registrados.</div>'}
         </div>
@@ -798,15 +727,6 @@
         return;
       }
       els.authError.style.display = 'block';
-    });
-
-    els.fillDemo.addEventListener('click', () => {
-      els.loginForm.elements.username.value = ADMIN_USER;
-      els.loginForm.elements.password.value = ADMIN_PASSWORD;
-      els.authError.style.display = 'none';
-      setAuthState(true);
-      requireAuth();
-      render();
     });
 
     els.logoutBtn.addEventListener('click', () => {
@@ -978,33 +898,13 @@
     });
 
     document.getElementById('reset-btn').addEventListener('click', () => {
-      if (!confirm('Esto vuelve a cargar los ejemplos iniciales. ¿Seguro?')) return;
-      state.clients = JSON.parse(JSON.stringify(demoClients));
-      state.availability = JSON.parse(JSON.stringify(demoAvailability));
-      selectedClientId = demoClients[0].id;
+      if (!confirm('Esto borrará todos los clientes, pagos y fechas. ¿Seguro?')) return;
+      state.clients = [];
+      state.availability = [];
+      selectedClientId = null;
       state.filters = { search: '', status: 'all' };
       saveState();
       render();
-    });
-
-    document.getElementById('seed-next-btn').addEventListener('click', () => {
-      const idx = state.clients.length + 1;
-      const client = {
-        id: uid('client'),
-        name: `Cliente demo ${idx}`,
-        phone: `312 ${Math.floor(100 + Math.random() * 899)} ${Math.floor(1000 + Math.random() * 8999)}`,
-        city: 'Colima',
-        projectType: 'Paneles solares',
-        quoteTotal: 95000 + (idx * 2500),
-        appointment: nextDate(5 + idx),
-        status: 'Cotizado',
-        notes: 'Ejemplo para probar el flujo de admin.',
-        payments: [],
-        createdAt: isoDate(),
-        updatedAt: isoDate(),
-      };
-      state.clients.unshift(client);
-      updateSelected(client.id);
     });
 
     document.getElementById('payment-client').addEventListener('change', (event) => {
@@ -1016,3 +916,4 @@
   </script>
 </body>
 </html>
+
