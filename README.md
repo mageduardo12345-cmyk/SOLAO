@@ -4,6 +4,8 @@
 
 ```text
 solao-web/
+|-- index.html           <- Redireccion simple al sitio publico
+|-- admin.html           <- Panel privado de clientes y pagos
 |-- public/
 |   `-- index.html        <- La pagina web completa
 |-- api/
@@ -103,3 +105,6 @@ Actualmente la funcion usa `gpt-4o-mini` para mantener bajo el costo.
 
 **Que pasa si alguien intenta abusar del endpoint?**  
 La funcion solo acepta JPG, PNG o PDF y limita el tamano del archivo a 5MB. Aun asi, conviene poner limite de gasto en OpenAI.
+
+**Donde esta el panel privado?**  
+En `/admin.html`. Por ahora guarda datos en el navegador con `localStorage`, asi puedes probar el flujo de clientes, pagos y disponibilidad sin montar base de datos todavia.
