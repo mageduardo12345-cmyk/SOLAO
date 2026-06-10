@@ -178,11 +178,61 @@
       .grid{grid-template-columns:1fr}
       .metrics{grid-template-columns:repeat(2,1fr)}
     }
+    @media (max-width: 900px){
+      .shell{padding:16px}
+      .topbar{padding:16px 16px 14px;border-radius:18px;align-items:flex-start}
+      .top-actions{width:100%}
+      .top-actions .chip,.top-actions .btn{flex:1 1 calc(50% - 10px);justify-content:center}
+      .panel{padding:16px}
+      .panel-head{flex-direction:column;align-items:flex-start}
+      .filters{width:100%}
+      .filters .input,.filters .select{flex:1 1 100%}
+      .metric{padding:16px}
+      .metric .value{font-size:1.55rem}
+      .mini-row{padding:12px 13px}
+      .detail-head{flex-direction:column}
+      .payment-item .row,.timeline-item .row{flex-direction:column;align-items:flex-start}
+      .auth-card{padding:22px;border-radius:24px}
+      .auth-head h2{font-size:1.4rem}
+    }
     @media (max-width: 720px){
       .shell{padding:14px}
       .topbar{padding:16px;border-radius:18px;flex-direction:column;align-items:flex-start}
       .metrics,.form-grid,.detail-grid{grid-template-columns:1fr}
-      table{min-width:860px}
+      .brand h1{font-size:1.02rem}
+      .brand p{font-size:.84rem}
+      .top-actions .chip,.top-actions .btn{flex:1 1 100%;width:100%}
+      .chip,.btn{padding:.74rem .95rem}
+      .table-wrap{border-radius:16px}
+      table{min-width:720px}
+      th,td{padding:12px 10px}
+      .client-name{font-size:.92rem}
+      .tiny-btn{padding:.42rem .68rem;font-size:.78rem}
+      .badge,.status{font-size:.7rem}
+      .auth-screen{padding:16px}
+      .auth-card{padding:20px}
+      .auth-grid .input{min-height:50px}
+    }
+    @media (max-width: 480px){
+      .shell{padding:12px}
+      .topbar{padding:14px 14px 12px}
+      .brand{gap:10px}
+      .brand-badge{width:40px;height:40px;border-radius:12px}
+      .metrics{grid-template-columns:1fr}
+      .panel{padding:14px}
+      .panel h2{font-size:1.15rem}
+      .panel h3{font-size:1rem}
+      .input,.select,.textarea{padding:.78rem .85rem;border-radius:12px}
+      .form-actions{flex-direction:column}
+      .form-actions .btn,.form-actions .chip{width:100%;justify-content:center}
+      .table-wrap{margin:0 -2px}
+      table{min-width:640px}
+      th,td{padding:11px 9px;font-size:.84rem}
+      .detail-title{font-size:1.18rem}
+      .kv{padding:12px}
+      .mini-row{flex-direction:column;align-items:flex-start}
+      .auth-head{align-items:flex-start}
+      .auth-head h2{font-size:1.28rem}
     }
   </style>
 </head>
